@@ -1,0 +1,90 @@
+:root {
+  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #0a0a0a;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+#app {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+}
+
+canvas {
+  display: block;
+}
+
+#ui-overlay {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: 300px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  pointer-events: none;
+}
+
+#ui-overlay h1 {
+  margin: 0 0 10px 0;
+  font-size: 1.2rem;
+  color: #a0ff90;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+#brain-logs {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.85rem;
+  color: #cccccc;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 10px;
+}
+
+.log-entry {
+  margin-bottom: 5px;
+  border-left: 2px solid #555;
+  padding-left: 8px;
+}
+
+.log-entry.llm {
+  border-left-color: #a0ff90;
+}
+
+.glass-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 8px 15px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.3s ease;
+}
+
+.glass-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
