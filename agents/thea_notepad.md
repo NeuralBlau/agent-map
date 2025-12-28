@@ -26,6 +26,30 @@
 ---
 
 ## Important Memories
+- [14:28:51] Wood & Stone = Shelter!
+- [14:28:18] Wood and stone – build the shelter! Shelter is the priority - wood and stone!
+- [14:28:10] Wood and stone – build the shelter! Shelter is the priority - wood and stone!
+- [14:27:58] Shelter - wood and stone are the keys!
+- [14:27:51] Wood and stone – build the shelter!
+- [14:27:42] Shelter is the priority - wood and stone!
+- [14:27:38] Wood and stone are key – focus on shelter!
+- [14:27:08] Shelter – wood & stone are the keys!
+- [14:26:43] Wood is key - focus on tree gathering.
+- [14:26:35] Stone is key - check rock piles frequently.
+- [14:26:20] Shelter - the key to a stable future. Focus on wood and stone!
+- [14:10:01] Campfire built - warmth secured!
+- [14:09:27] Shelter - the key to a stable future. Focus on wood and stone!
+- [14:08:54] Campfire is key - warmth and stability.
+- [14:08:45] Shelter - the key to a stable future. Focus on wood and stone!
+- [14:08:39] Shelter is the key to a stable future. Focus on wood and stone!
+- [14:08:20] Campfire built - warmth secured!
+- [14:07:51] Shelter is key – focus on wood and stone!
+- [14:07:47] Shelter construction is the key to a stable future.
+- [14:07:13] Campfire built – warmth secured!
+- [11:58:39] Shelter is key to a stable future.
+- [11:58:09] Shelter - the key to a stable future.
+- [11:57:44] Shelter construction is the key to a stable future.
+- [11:57:39] Shelter is the next priority – warmth and stability.
 - [10:56:54] Gather Wood
 - [10:56:47] Gather Wood
 - [10:56:43] Hunger high, gather berries.

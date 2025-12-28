@@ -8,26 +8,30 @@ export function getStrategicPrompt(agentName, state, worldRules, notepad) {
     const inventory = agent.inventory || {};
     const buildings = state.buildings || [];
     const nearbyCampfires = buildings.filter(b => b.type === 'CAMPFIRE');
+    
+    // Qualitative Stats Helper
+    const describe = (val) => {
+        if (val > 80) return `safe (${val})`;
+        if (val > 40) return `WARN (${val})`;
+        if (val > 15) return `CRITICAL (<40)`;
+        return `DYING (<15)`;
+    };
 
     return `
 YOU ARE THE STRATEGIC MIND OF ${agentName}.
+Your goal is LONG-TERM PRESERVATION.
 
 WORLD RULES & KNOWLEDGE:
 ${worldRules}
 
 ---
 CURRENT STATE:
-- Stats: Hunger: ${stats.hunger}, Warmth: ${stats.warmth}, Health: ${stats.health}
+- Stats: Hunger: ${describe(stats.hunger)}, Warmth: ${describe(stats.warmth)}, Health: ${describe(stats.health)}
 - Inventory: ${JSON.stringify(inventory)}
 - Nearby Campfires: ${nearbyCampfires.length} built nearby.
 
-FEASIBILITY (nearest distances):
-- Wood/Trees: ${state.perception?.nearestDistances?.tree || 'Unknown'} units
-- Stone/Rocks: ${state.perception?.nearestDistances?.rock || 'Unknown'} units
-- Berries/Food: ${state.perception?.nearestDistances?.berry || 'Unknown'} units
-
-MATERIAL READINESS:
-${JSON.stringify(state.perception?.allRecipes || "Unknown", null, 2)}
+FEASIBILITY CALCULATIONS (Pre-calculated):
+${JSON.stringify(state.perception?.buildingReadiness || "Unknown", null, 2)}
 
 NOTEPAD (Memories):
 ${notepad}
@@ -36,18 +40,19 @@ YOUR TASK:
 Define the next mid-term Strategic Goal. 
 Goals should be one of:
 - SURVIVE (Generic)
-- BUILD_SHELTER (Needs 20 wood, 10 stone)
+- BUILD_SHELTER (Needs 50 wood, 10 stone)
 - BUILD_CAMPFIRE (Needs 10 wood)
 - GATHER_FOOD (If hunger is low)
 - GATHER_WOOD (Prerequisite for building)
 - GATHER_STONE (Prerequisite for building)
 - EXPLORE (If resources are far/unknown)
 
-SANITY CHECK:
-Before deciding, double-check your material readiness. 
-If MATERIAL READINESS for a building says "READY", you can goal to BUILD it.
-If it lists missing materials, you MUST goal to GATHER those materials first.
-Do not claim you have enough materials if the "status" field for a requirement is "LOCKED".
+SANITY CHECK (CRITICAL):
+Before deciding, LOOK at the FEASIBILITY CALCULATIONS above.
+- If "CAN_BUILD_X" says "YES", you SHOULD goal to "BUILD_X".
+- If "CAN_BUILD_X" says "NO", you MUST goal to GATHER the missing materials first.
+- **DO NOT LIE**. If you say you have materials when the calculation says "NO", you will fail.
+- **DO NOT HALLUCINATE**. Trust the "NO (Missing: X)" text. It is absolute truth.
 
 Respond in VALID JSON ONLY:
 {

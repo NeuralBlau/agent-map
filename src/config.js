@@ -128,5 +128,6 @@ export const API = {
     LLM_ENDPOINT: 'http://localhost:3000/decide',
     STRATEGIC_ENDPOINT: 'http://localhost:3000/strategic',
     TACTICAL_ENDPOINT: 'http://localhost:3000/tactical',
+    RESET_LOG_ENDPOINT: 'http://localhost:3000/reset-log',
     WHISPER_TIMEOUT: 15000
 };

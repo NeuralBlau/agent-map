@@ -276,7 +276,8 @@ export function createBTContext(options) {
         canCraft,
         startCraft,
         createBuilding,
-        consumeItem
+        consumeItem,
+        findNearestResource // Extract passed helper
     } = options;
 
     return {
@@ -307,6 +308,17 @@ export function createBTContext(options) {
 
         // Find nearest resource of a type
         findNearestResource(resourceType, position) {
+            // Use passed helper if available (it binds agent position correctly)
+            if (findNearestResource) {
+                return findNearestResource(resourceType);
+            }
+
+            // Fallback (Logic that crashed because 'position' was undefined)
+            if (!position) {
+                console.error('[PlanExecutor] findNearestResource called without position and no bound helper!');
+                return null;
+            }
+
             const matching = resourceNodes
                 .filter(r => r.type === resourceType && r.remaining > 0);
 

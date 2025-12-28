@@ -26,6 +26,16 @@
 ---
 
 ## Important Memories
+- [14:19:54] Campfire construction - absolute priority. Prevent Health loss.
+- [14:19:36] Campfire - Priority One. Prevent Health loss.
+- [14:19:27] Campfire construction - absolute priority.
+- [14:19:21] Campfire - Priority One. Prevent Health loss.
+- [11:58:44] Campfire construction is the absolute priority.
+- [11:58:12] Campfire is the key to preventing Health loss.
+- [11:57:52] Campfire construction is priority one.
+- [11:57:50] Campfire construction is priority one.
+- [11:57:47] Campfire construction is priority one.
+- [11:57:40] Campfire construction is priority one.
 - [10:56:20] Gather wood and stone.
 - [17:38:46] Warmth at 70, prioritize warmth
 - [17:38:14] Warmth at 74, no immediate threats.

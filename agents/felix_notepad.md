@@ -26,6 +26,20 @@
 ---
 
 ## Important Memories
+- [14:23:46] Campfire: 10 Wood, 3 Stone - Critical for Warmth.
+- [14:23:32] Campfire: 10 Wood, 3 Stone - Critical for Warmth.
+- [14:23:10] Campfire: 10 Wood, 3 Stone - Critical for Warmth.
+- [14:23:00] Campfire: 10 Wood, 3 Stone - Critical for Warmth.
+- [14:22:45] Campfire: 10 Wood, 3 Stone - Critical for Warmth.
+- [14:22:38] Campfire: 10 Wood, 3 Stone - Critical for Warmth.
+- [12:08:33] Shelter construction is paramount for long-term survival.
+- [11:35:51] Warmth at 82
+- [11:35:21] Need to gather 3 stone for campfire.
+- [11:34:51] Need 3 stone for campfire
+- [11:34:43] Gather wood and stone.
+- [11:34:33] Gather wood & stone.
+- [11:34:25] Gather wood and stone
+- [11:34:20] High hunger, needs berries
 - [10:16:10] Need to build campfire. Check for wood and stone.
 - [10:15:40] Enough wood and stone for campfire.
 - [10:15:10] Wood 10, Stone 3, Campfire built

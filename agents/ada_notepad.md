@@ -26,6 +26,18 @@
 ---
 
 ## Important Memories
+- [14:06:30] Campfire: 10 wood, 3 stone - top priority.
+- [14:05:58] Campfire is top priority - 10 wood, 3 stone.
+- [14:05:26] 10 wood, 3 stone - critical for immediate survival.
+- [14:05:18] Campfire building: 10 wood, 3 stone - top priority.
+- [14:05:08] Campfire building: 10 wood, 3 stone - top priority.
+- [14:04:54] Campfire: 10 wood, 3 stone - priority build.
+- [11:32:39] Campfire building materials needed: 10 wood, 3 stone
+- [11:31:40] Need to gather 3 Stone
+- [11:30:49] Wood: 7, Stone: 0, Campfire built: 0
+- [11:30:19] Need wood and stone to build campfire.
+- [11:30:05] Wood: 7, Stone: 0, Campfire built: false
+- [11:29:39] Need 10 wood, 3 stone for campfire.
 - [11:28:39] Need stone for campfire
 - [11:27:39] Need wood and stone for campfire
 - [11:26:39] Wood=7, Stone=0, Warmth=90

@@ -26,6 +26,25 @@
 ---
 
 ## Important Memories
+- [14:23:44] 10 wood, 3 stone - MUST build it NOW!
+- [14:23:29] Campfire is priority one - build it now!
+- [14:23:23] 10 wood, 3 stone - MUST build it NOW!
+- [14:23:15] Campfire is KEY! Build it NOW!
+- [14:23:02] Campfire materials: 10 wood, 3 stone - MUST build it NOW!
+- [14:22:40] 10 wood, 3 stone - remember the recipe!
+- [13:00:22] Campfire is KEY! Build it NOW!
+- [12:59:48] Campfire is KEY! Build it NOW!
+- [12:59:14] Campfire is KEY!
+- [12:58:41] Campfire is priority one - build it now!
+- [12:58:06] Campfire is priority one. Remember to build it!
+- [12:57:33] Campfire is key to long-term survival - build it now!
+- [12:56:58] Campfire materials: 10 wood, 3 stone
+- [12:56:27] Campfire is key to long-term survival.
+- [12:56:04] Campfire is key to long-term survival.
+- [12:55:52] Campfire is priority one.
+- [11:33:58] Check wood supply
+- [11:33:41] High Hunger
+- [11:33:37] Hunger 98, Warmth 100
 - [11:13:29] Check for wood and stone
 - [11:13:10] Need to gather wood/stone for campfire.
 - [11:12:57] Gather wood, check for stone.

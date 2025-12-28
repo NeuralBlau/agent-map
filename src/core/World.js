@@ -53,6 +53,13 @@ export class World {
         this.agents.push(agent);
     }
 
+    removeAgent(agent) {
+        const index = this.agents.indexOf(agent);
+        if (index > -1) {
+            this.agents.splice(index, 1);
+        }
+    }
+
     findAgentByName(name) {
         return this.agents.find(a => a.name === name);
     }

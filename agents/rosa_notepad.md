@@ -26,6 +26,20 @@
 ---
 
 ## Important Memories
+- [14:09:57] Campfire first! Warmth is key.
+- [14:09:24] Wood is key! Campfire first!
+- [14:08:52] Wood is key. Campfire first!
+- [14:08:19] Wood is key. Prioritize tree gathering.
+- [14:07:48] Wood is key. Prioritize tree gathering.
+- [14:07:23] Wood is key. Prioritize tree gathering.
+- [14:07:20] Wood is the key. Prioritize tree gathering.
+- [14:07:14] Prioritize wood and stone gathering for immediate warmth and food.
+- [11:32:40] Need wood and stone for campfire.
+- [11:31:39] Hunger 47, Warmth 89
+- [11:31:00] Need 10 wood, 3 stone for campfire.
+- [11:30:28] Need 10 wood, 3 stone for campfire.
+- [11:30:06] Need wood/stone for campfire
+- [11:29:40] Check inventory for stone.
 - [11:28:40] Need wood and stone for campfire.
 - [11:27:40] Wood: 17, Stone: 0
 - [11:26:40] Check inventory for wood and stone.

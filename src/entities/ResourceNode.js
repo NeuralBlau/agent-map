@@ -251,17 +251,25 @@ function respawnNode(node) {
 /**
  * Find the nearest resource node of a specific type
  */
-export function findNearestResource(agent, resourceType) {
-    const agentPos = agent.group.position;
+/**
+ * Find the nearest resource node of a specific type
+ * Matches signature expected by main.js: (type, position, nodes)
+ */
+export function findNearestResource(resourceType, position, nodes = resourceNodes) {
+    if (!position) {
+        console.error('[ResourceNode] findNearestResource called without position');
+        return null;
+    }
 
     let nearest = null;
     let nearestDist = Infinity;
 
-    resourceNodes.forEach(node => {
+    nodes.forEach(node => {
         if (node.isDepleted || node.remaining <= 0) return;
-        if (resourceType && node.resource !== resourceType) return;
+        if (resourceType && node.resource !== resourceType) return; // 'tree' vs 'tree'
 
-        const dist = agentPos.distanceTo(node.group.position);
+        // Check distance
+        const dist = position.distanceTo(node.group.position);
         if (dist < nearestDist) {
             nearestDist = dist;
             nearest = node;

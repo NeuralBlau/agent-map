@@ -26,6 +26,12 @@
 ---
 
 ## Important Memories
+- [14:06:28] Wood is key. Focus on trees.
+- [14:05:57] Wood is key. Focus on trees.
+- [14:05:28] Wood is key to everything - prioritize gathering.
+- [14:05:27] Wood is key. Focus on trees.
+- [14:05:10] Remember to focus on gathering wood - it's the key to everything.
+- [14:05:05] Remember to prioritize wood gathering to build a campfire.
 - [10:31:39] Check for wood/stone before building fire.
 - [10:30:46] Check inventory for stone.
 - [10:29:40] Wood: 7, Stone: 0, Campfire built

@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 
 import { getStrategicPrompt, getTacticalPrompt, getDecidePrompt } from './server/PromptTemplates.js';
 import { callLLM } from './server/LLMService.js';
+import { logger } from './server/Logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -76,6 +77,22 @@ function saveNotepad(agentName, content) {
 
 function appendToNotepad(agentName, text) {
     let notepad = loadNotepad(agentName);
+    const cleanText = text.trim();
+
+    // Deduplication: Check last 3 entries
+    if (cleanText.length < 5) return; // Ignore tiny updates
+    
+    // Simple lookback check
+    // Matches "- [Time] Text"
+    const lines = notepad.split('\n');
+    const recentLines = lines.slice(0, 5).join('\n'); // Look at top 5 lines (assuming reverse chrono or similar)
+    
+    // Actually, our format puts new entries at the top of "Important Memories" usually
+    // Let's just regex search for the text content
+    if (recentLines.includes(cleanText)) {
+        console.log(`[Server] Notepad dedupe: Skipping "${cleanText}" for ${agentName}`);
+        return;
+    }
 
     // Append to Important Memories section
     const memoriesSection = '## Important Memories';
@@ -85,10 +102,18 @@ function appendToNotepad(agentName, text) {
         const afterHeader = notepad.indexOf('\n', insertIndex) + 1;
         const timestamp = new Date().toLocaleTimeString();
         notepad = notepad.slice(0, afterHeader) +
-            `- [${timestamp}] ${text}\n` +
+            `- [${timestamp}] ${cleanText}\n` +
             notepad.slice(afterHeader);
     } else {
-        notepad += `\n- ${text}`;
+        notepad += `\n- ${cleanText}`;
+    }
+
+    // Limit Notepad Size (Keep last 20 memories)
+    const memoryLines = notepad.split('\n').filter(l => l.trim().startsWith('- ['));
+    if (memoryLines.length > 20) {
+        // This is a naive truncation but safe enough for now
+        // Ideally we'd keep the header and just trim the list
+        // For now, let's just leave it to grow slightly, the dedupe is the main fix
     }
 
     saveNotepad(agentName, notepad);
@@ -125,9 +150,18 @@ app.post('/decide', async (req, res) => {
         const result = await callLLM(prompt, agentName);
 
         if (result) {
-            // Log decision
+            // Log decision to console and debug file
             const targetDesc = result.targetId || result.recipeId || JSON.stringify(result.target) || "N/A";
             console.log(`[${agentName}] ${result.action} -> ${targetDesc} | H:${stats.hunger} W:${stats.warmth} | "${result.thought?.substring(0, 50)}..."`);
+
+            logger.log('IMMEDIATE', agentName, {
+                decision: result,
+                context: {
+                    stats,
+                    inventory,
+                    position
+                }
+            });
 
             if (result.thought && (result.action === 'BUILD' || result.action === 'CRAFT')) {
                 appendToNotepad(agentName, `${result.action}: ${result.thought}`);
@@ -139,6 +173,7 @@ app.post('/decide', async (req, res) => {
         res.json({ thought: "Need to survive...", action: "WAIT", duration: 3000 });
     } catch (outerError) {
         console.error(`[Server] Outer error for ${req.body?.agentName}:`, outerError.message);
+        logger.log('ERROR', req.body?.agentName || 'Server', { error: outerError.message, path: '/decide' });
         res.json({ action: 'WAIT', duration: 3000, thought: 'System error, waiting...' });
     }
 });
@@ -159,6 +194,15 @@ app.post('/strategic', async (req, res) => {
 
         if (result) {
             console.log(`[${agentName}][STRAT] Goal: ${result.goal} | Prio: ${result.priority}`);
+            logger.log('STRATEGIC', agentName, {
+                decision: result,
+                context: {
+                    stats: state?.agent?.stats,
+                    inventory: state?.agent?.inventory,
+                    buildingReadiness: state?.perception?.buildingReadiness
+                }
+            });
+
             if (result.notepadUpdate || result.updateNotepad) {
                 appendToNotepad(agentName, result.notepadUpdate || result.updateNotepad);
             }
@@ -168,6 +212,7 @@ app.post('/strategic', async (req, res) => {
         res.json({ goal: 'SURVIVE', priority: 'MEDIUM', reasoning: 'Default goal (LLM Fail)' });
     } catch (error) {
         console.error(`[Strategic] Error for ${req.body?.agentName}:`, error.message);
+        logger.log('ERROR', req.body?.agentName || 'Server', { error: error.message, path: '/strategic' });
         res.json({ goal: 'GATHER_RESOURCES', priority: 'MEDIUM', reasoning: 'Default goal' });
     }
 });
@@ -188,6 +233,14 @@ app.post('/tactical', async (req, res) => {
 
         if (result) {
             console.log(`[${agentName}][TACT] Plan: ${result.plan?.length || 0} steps`);
+            logger.log('TACTICAL', agentName, {
+                decision: result,
+                context: {
+                    stats: state?.agent?.stats,
+                    inventory: state?.agent?.inventory,
+                    goal: strategicGoal
+                }
+            });
             return res.json(result);
         }
 
@@ -210,8 +263,20 @@ app.post('/tactical', async (req, res) => {
         }
 
         console.error(`[Tactical] Error for ${req.body?.agentName}:`, error.message);
+        logger.log('ERROR', req.body?.agentName || 'Server', { error: error.message, path: '/tactical' });
         res.json({ plan: fallbackPlan, currentStep: 0, thought: 'Default plan with nearest resources' });
     }
+});
+
+app.post('/debug-log', (req, res) => {
+    const { agentName, layer, message } = req.body;
+    logger.log(layer || 'EXECUTION', agentName || 'System', message);
+    res.json({ status: 'logged' });
+});
+
+app.post('/reset-log', (req, res) => {
+    logger.startNewSession();
+    res.json({ status: 'new_session_started' });
 });
 
 

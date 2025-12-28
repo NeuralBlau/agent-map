@@ -56,6 +56,8 @@ export function serializeAgent(agent, allAgents, seeds, scene, currentWhisper, r
 
     // v3.3 Strategic Feasibility: Check ALL recipes for the Strategic Mind
     const allRecipeFeasibility = {};
+    const buildingReadiness = {}; // Simple flags for the prompt: CAN_BUILD_X: YES/NO
+
     Object.entries(RECIPES).forEach(([id, recipe]) => {
         const gaps = {};
         let isReady = true;
@@ -67,6 +69,11 @@ export function serializeAgent(agent, allAgents, seeds, scene, currentWhisper, r
             }
         });
         allRecipeFeasibility[id] = isReady ? "READY" : gaps;
+        
+        // The "Glasses" - Simple boolean text for LLM
+        buildingReadiness[`CAN_BUILD_${id}`] = isReady ? 
+            "YES (Have Materials)" : 
+            `NO (Missing: ${Object.values(gaps).join(', ')})`;
     });
 
     // v3 Pre-processor: Material Gaps
@@ -102,7 +109,8 @@ export function serializeAgent(agent, allAgents, seeds, scene, currentWhisper, r
         },
         perception: {
             nearestDistances,
-            allRecipes: allRecipeFeasibility,
+            buildingReadiness: buildingReadiness, // The "Pre-calc Math" layer
+            detailedRecipes: allRecipeFeasibility, // Legacy, kept for debugging/tactical drill-down
             goalRequirements: currentRecipe ? currentRequirements : "N/A",
             explorationCues: Object.keys(explorationCues).length > 0 ? explorationCues : undefined
         },

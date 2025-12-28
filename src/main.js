@@ -58,6 +58,7 @@ const ui = new UIManager();
 ui.initAgentPanels(world.agents);
 
 const agents = world.agents;
+let isSimulationRunning = false;
 let currentWhisper = null;
 
 // Bridge legacy addLog calls to the new event system
@@ -87,7 +88,30 @@ function addAgentLog(agent, text) {
 
 // STRATEGIC LAYER - Long-term goal planning (every 30 seconds)
 async function strategicLoop(agent) {
-  if (agent.isDead) return;
+  if (agent.isDead) {
+    if (agent.strategicInterval) clearInterval(agent.strategicInterval);
+    return;
+  }
+
+  // EXECUTION LOCK: If the agent has an active plan (Behavior Tree), DO NOT INTERRUPT.
+  // This prevents "Execution Paralysis" where the agent re-thinks before acting.
+  if (agent.behaviorTree && !agent.isThinking) {
+    return;
+  }
+
+  // EXECUTION LOCK (Refined):
+  // If the agent has an active plan (Behavior Tree), DO NOT INTERRUPT unless they are stuck.
+  if (agent.behaviorTree && !agent.isThinking) {
+    const btDuration = Date.now() - (agent.btStartTime || 0);
+    // If plan is running for less than 60 seconds, let them cook.
+    if (btDuration < 60000) {
+      // console.log(`[Strategic] Skipping thinking for ${agent.name} (Busy executing plan for ${Math.round(btDuration/1000)}s)`);
+      return; 
+    } else {
+      Events.emit('log', `⚠️ Execution Timeout: ${agent.name} stuck for >60s. Forcing re-think.`, 'system');
+      agent.behaviorTree = null; // Force clear to allow re-think
+    }
+  }
 
   // v3.3 Logic Cooldown: Prevent redundant strategic calls
   const stateSnapshot = getStateSnapshot(agent);
@@ -127,8 +151,8 @@ async function strategicLoop(agent) {
     // Add to agent log
     addAgentLog(agent, `[STRATEGIC] Goal: ${result.goal} (${result.priority})`);
 
-    // If goal changed, trigger tactical update
-    if (previousGoal !== result.goal) {
+    // If goal changed OR we have no active plan (Idle Bug Fix), trigger tactical update
+    if (previousGoal !== result.goal || !agent.behaviorTree) {
       tacticalLoop(agent);
     }
 
@@ -190,6 +214,7 @@ async function tacticalLoop(agent) {
     if (result.plan && result.plan.length > 0) {
       agent.behaviorTree = buildTreeFromPlan(result.plan);
       if (agent.behaviorTree) {
+        agent.btStartTime = Date.now(); // Track when this plan started
         addAgentLog(agent, `[BT] Built tree with ${result.plan.length} steps`);
       }
     } else {
@@ -301,15 +326,35 @@ function animate() {
 
   // Update agents
   agents.forEach(agent => {
+    if (agent.isDead) {
+      if (!agent.isRespawning && isSimulationRunning) {
+        // Auto-Reset Check: If ALL agents are dead, restart the run
+        const allDead = agents.every(a => a.isDead);
+        if (allDead) {
+          Events.emit('log', `⚠️ EXTINCTION EVENT DETECTED. Resetting world in 5 seconds...`, 'system');
+          isSimulationRunning = false; // Prevent multiple triggers
+          setTimeout(() => {
+            window.game.startRun();
+          }, 5000);
+        }
+      }
+      return;
+    }
+
     // Movement
     const reachedTarget = updateAgentMovement(agent, delta);
 
     // Panic Interrupt - if stats are critical, abandon current plan
-    const isPanic = agent.stats.hunger < 15 || agent.stats.warmth < 15;
+    // Panic Interrupt - Only if stats are CRITICALLY low (immediate death imminent)
+    const isPanic = agent.stats.hunger < 5 || agent.stats.warmth < 5;
     if (isPanic && agent.behaviorTree && !agent.isThinking) {
-      addAgentLog(agent, '[PANIC] Critical stats! Abandoning plan.');
-      agent.behaviorTree = null;
-      strategicLoop(agent); // Emergency re-evaluation
+      // Only panic if we aren't already frantically trying to survive
+      // (This is a rough heuristic, but better than wiping the plan every frame)
+      if (Math.random() < 0.1) { // Throttle the panic log/action
+          addAgentLog(agent, '[PANIC] DO OR DIE! Stats critical!');
+          agent.behaviorTree = null;
+          strategicLoop(agent); 
+      }
     }
 
     // Behavior Tree execution (if agent has a tree from tactical plan)
@@ -399,6 +444,31 @@ function animate() {
   engine.render();
 }
 
+/**
+ * Continuous Simulation: Respawn dead agents
+ */
+// Deprecated: respawnAgent (replaced by full world reset)
+// function respawnAgent(deadAgent) { ... }
+
+/**
+ * Starts the multi-layer brain loop for an agent
+ */
+function startBrainLoop(agent, initialDelay = 0) {
+  setTimeout(() => {
+    // Initial call
+    strategicLoop(agent);
+
+    // Continuous updates
+    agent.strategicInterval = setInterval(() => {
+      if (!agent.isDead) {
+        strategicLoop(agent);
+      } else {
+        clearInterval(agent.strategicInterval);
+      }
+    }, 30000 + Math.random() * 5000);
+  }, initialDelay);
+}
+
 
 // ============================================================================
 // GAME API (accessible from console)
@@ -432,22 +502,56 @@ window.game = {
   },
 
   // Start AI
-  startAI: () => {
-    Events.emit('log', 'Universal Intelligence activated. Multi-layer system online.', 'system');
-    agents.forEach((agent, i) => {
-      // Stagger initial brain loops
-      setTimeout(() => {
-        // Start strategic layer (every 30 seconds)
-        // This will trigger tactical layer and build the initial BT
-        strategicLoop(agent);
+  // Start New Run (Reset World)
+  startRun: async () => {
+    // 1. Stop existing
+    window.game.stopAI();
 
-        setInterval(() => {
-          if (!agent.isDead) {
-            strategicLoop(agent);
-          }
-        }, 30000 + i * 2000); // Stagger intervals
-      }, i * 1000);
+    // 2. Reset Log
+    try {
+      await fetch(API.RESET_LOG_ENDPOINT, { method: 'POST' });
+      addLog('=== NEW RUN STARTED ===', 'system');
+    } catch (e) {
+      console.error('Failed to reset log:', e);
+    }
+
+    // 3. Reset World Entities
+    // Remove old agents from scene
+    [...agents].forEach(a => {
+      scene.remove(a.group);
+      world.removeAgent(a);
     });
+
+    // Remove old resources/buildings (optional, but cleaner for a "fresh run")
+    // For now, we'll keep the world map static but reset agents
+    // If you want a full map re-gen, we'd need to clear resourceNodes/buildings arrays too
+
+    // 4. Spawn Fresh Agents
+    resetUsedNames();
+    const p1 = createAgent(getRandomName(), COLORS.AGENT_PIONEER, new THREE.Vector3(2, 0, 2), scene);
+    const p2 = createAgent(getRandomName(), COLORS.AGENT_SETTLER, new THREE.Vector3(-2, 0, -2), scene);
+    world.addAgent(p1);
+    world.addAgent(p2);
+
+    // 5. Update UI
+    ui.initAgentPanels(agents);
+
+    // 6. Start Loops
+    isSimulationRunning = true;
+    agents.forEach((agent, i) => {
+      startBrainLoop(agent, i * 1000);
+    });
+  },
+
+  // Stop AI
+  stopAI: () => {
+    isSimulationRunning = false;
+    agents.forEach(a => {
+      if (a.strategicInterval) clearInterval(a.strategicInterval);
+      a.isThinking = false;
+      a.state = 'IDLE';
+    });
+    addLog('Simulation stopped by user.', 'system');
   },
 
   // Agent selection

@@ -26,6 +26,9 @@
 ---
 
 ## Important Memories
+- [11:51:38] Campfire is the top priority - acquire wood and stone.
+- [11:51:22] Campfire is the top priority to address warmth.
+- [11:51:08] Prioritize wood gathering immediately.
 - [11:19:30] Gather wood & stone
 - [11:18:58] Check for wood and stone
 - [11:18:28] Gather wood and stone

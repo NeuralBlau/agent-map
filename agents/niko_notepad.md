@@ -26,6 +26,12 @@
 ---
 
 ## Important Memories
+- [11:38:50] Shelter construction is the priority. Get wood and stone.
+- [11:38:28] Shelter construction is key to long-term survival. Prioritize wood and stone.
+- [11:38:19] Shelter is the priority. Get wood and stone.
+- [11:37:56] Remember to build the campfire immediately.
+- [11:37:32] Shelter construction is key to long-term survival.
+- [11:37:25] Campfire building: 10 wood, 3 stone
 - [10:56:42] Check for wood/stone
 - [10:16:39] Campfire building materials: 10 wood, 3 stone
 - [10:15:55] Wood 10, Stone 3 - Build Campfire

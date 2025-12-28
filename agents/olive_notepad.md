@@ -26,6 +26,10 @@
 ---
 
 ## Important Memories
+- [11:46:29] Campfire - 10 wood, 3 stone - immediate priority to prevent Health loss.
+- [11:46:20] Need to gather 6 wood for Campfire.
+- [11:46:15] Campfire is the immediate priority to prevent Health drain.
+- [11:45:55] Campfire is priority one - prevent Health loss.
 - [10:54:00] Build Campfire
 - [10:53:28] Build campfire
 - [10:51:36] Wood >= 10, Stone >= 3

@@ -26,6 +26,14 @@
 ---
 
 ## Important Memories
+- [11:53:53] Campfire is top priority – warmth is failing!
+- [11:53:21] Campfire - critical for survival!
+- [11:52:49] Campfire is top priority - warmth is failing!
+- [11:52:17] Campfire is the absolute priority - warmth is failing!
+- [11:52:14] Campfire is the absolute priority - warmth is failing!
+- [11:52:09] Campfire is the absolute priority - warmth is failing!
+- [11:51:58] Campfire is top priority - warmth is failing!
+- [11:51:44] Campfire is the immediate priority to counter the dropping Warmth stat.
 - [11:19:25] Gather Wood
 - [11:18:55] Gather wood and stone.
 - [11:18:24] Need wood and stone for campfire.

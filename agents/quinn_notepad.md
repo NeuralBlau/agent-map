@@ -26,6 +26,28 @@
 ---
 
 ## Important Memories
+- [14:19:35] Campfire - absolute priority! Warmth is critical.
+- [14:19:25] Campfire - absolute priority! Warmth is critical.
+- [14:19:19] Campfire - IMMEDIATE ACTION! Warmth is key.
+- [14:16:02] Campfire - absolute priority! Warmth is critical.
+- [14:15:29] Warmth is KEY!
+- [14:14:56] Campfire - immediate action! Warmth is key.
+- [14:14:23] Campfire - immediate action! Warmth is key.
+- [14:13:50] Campfire - absolute priority! Warmth is critical.
+- [14:13:18] Campfire - IMMEDIATE ACTION!
+- [14:12:45] Campfire - immediate action! Warmth is key.
+- [14:03:29] Campfire - absolute priority! Warmth is critical.
+- [14:02:56] Campfire - IMMEDIATE ACTION!
+- [14:02:30] Campfire - absolute priority!
+- [14:02:24] Campfire - IMMEDIATE ACTION!
+- [11:53:44] Campfire - absolute priority!
+- [11:53:14] Campfire - Immediate Action!
+- [11:52:44] Campfire - Immediate Action! Warmth is key.
+- [11:52:16] Campfire is KEY. Warmth is critical.
+- [11:52:15] Campfire - Immediate Action!
+- [11:52:12] Campfire is the absolute priority – warmth is essential.
+- [11:52:07] Campfire is priority one - warmth is critical.
+- [11:51:43] Campfire is key to survival - secure warmth now.
 - [11:02:31] Hunger 63, Warmth 93
 - [11:01:39] Hunger 63, Warmth 93
 - [11:00:40] Gather Wood

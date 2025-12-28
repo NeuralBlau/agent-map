@@ -26,6 +26,7 @@
 ---
 
 ## Important Memories
+- [11:33:38] Enough wood and stone for campfire.
 - [10:55:45] Check for nearby campfires.
 - [10:06:24] Enough wood and stone for campfire.
 - [09:30:03] Enough wood and stone for campfire.

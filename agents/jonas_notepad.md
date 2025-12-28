@@ -26,6 +26,17 @@
 ---
 
 ## Important Memories
+- [14:16:08] Shelter construction is the top priority – 50 wood, 10 stone immediately.
+- [14:15:34] Shelter is the priority – 50 wood, 10 stone needed immediately.
+- [14:15:01] 50 wood, 10 stone - Shelter is the absolute priority.
+- [14:14:27] Shelter: 50 wood, 10 stone – immediate priority
+- [14:13:53] 50 wood, 10 stone - Shelter is the absolute priority.
+- [14:13:19] Shelter: 50 Wood, 10 Stone - Immediate Priority
+- [14:12:50] Shelter is the priority - 50 wood, 10 stone needed immediately.
+- [14:12:46] Shelter construction: 50 wood, 10 stone – critical for warmth and long-term safety.
+- [11:38:48] Shelter construction: 50 wood, 10 stone - critical for warmth and long-term safety.
+- [11:38:24] Shelter construction: 50 wood, 10 stone - critical for warmth and long-term safety.
+- [11:38:18] Shelter is the priority – need 50 wood, 10 stone.
 - [10:07:03] Gather wood, stone
 - [10:06:33] Enough wood and stone for campfire.
 - [09:30:15] Wood 10, Stone 3, Campfire built.
