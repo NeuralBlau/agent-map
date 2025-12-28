@@ -1,0 +1,51 @@
+# Jonas's Notepad
+
+> Personal memory for this agent. Updated by LLM during gameplay.
+
+---
+
+## My Observations About Others
+
+<!-- Add entries for each agent you interact with -->
+
+---
+
+## My Preferences
+
+- Favorite gathering area: (not yet determined)
+- Risk tolerance: medium
+- Building style: (not yet determined)
+
+---
+
+## Current Plans
+
+- Short-term: Survive and gather resources
+- Long-term: Build shelter
+
+---
+
+## Important Memories
+- [10:07:03] Gather wood, stone
+- [10:06:33] Enough wood and stone for campfire.
+- [09:30:15] Wood 10, Stone 3, Campfire built.
+- [09:29:45] Enough wood and stone for campfire.
+- [09:29:14] Wood: 0, Stone: 0, Warmth: 52
+- [09:28:44] Build Campfire
+- [09:28:14] Campfire building materials needed: 10 wood, 3 stone
+- [09:27:45] Wood: 0, Stone: 0
+- [09:27:15] Wood: 10, Stone: 3
+- [09:26:44] Enough wood and stone to build campfire
+- [09:26:14] Need wood and stone for campfire
+- [09:25:44] Need wood and stone for campfire.
+- [09:25:15] Need wood and stone to build campfire.
+
+- Day 1: Washed up on the island. Time to survive.
+
+---
+
+## God's Whispers
+
+<!-- Player messages will be logged here -->
+
+---

@@ -26,6 +26,20 @@
         <input type="text" id="whisper-input" placeholder="Whisper to the agents..." class="glass-input">
         <button onclick="window.game.whisper()" class="glass-btn small">Whisper</button>
       </div>
+
+      <!-- Per-Agent Status Panels -->
+      <div id="agent-panels"></div>
+    </div>
+
+    <!-- Activity Log (collapsible) -->
+    <div id="log-panel">
+      <div id="log-header" onclick="toggleLog()">
+        <span>📜 Activity Log</span>
+        <span id="log-toggle">▼</span>
+      </div>
+      <div id="log-content">
+        <div id="brain-logs-full"></div>
+      </div>
     </div>
   </div>
   <script type="module" src="/src/main.js"></script>

@@ -2,7 +2,12 @@
 // Encapsulates agent state, rendering, and behavior
 
 import * as THREE from 'three';
-import { AGENT, COLORS } from '../config.js';
+import { AGENT, COLORS, SEED as SEED_CONFIG } from '../config.js';
+import { createInventory, serializeInventory } from '../systems/Inventory.js';
+import { RECIPES } from '../systems/Crafting.js';
+
+const SEED_EAT_SHRINK = SEED_CONFIG.EAT_SHRINK_RATE;
+const SEED_EAT_THRESHOLD = SEED_CONFIG.EAT_THRESHOLD;
 
 export function createAgent(name, color, startPos, scene) {
     const group = new THREE.Group();
@@ -25,12 +30,8 @@ export function createAgent(name, color, startPos, scene) {
     e2.position.set(-0.25, 0.7, 0.5);
     group.add(e1, e2);
 
-    // Hunger Bar
-    const barGeo = new THREE.PlaneGeometry(1, 0.1);
-    const barMat = new THREE.MeshBasicMaterial({ color: COLORS.HUNGER_FULL, side: THREE.DoubleSide });
-    const hungerBar = new THREE.Mesh(barGeo, barMat);
-    hungerBar.position.y = 1.5;
-    group.add(hungerBar);
+    // Stat Bars (stacked vertically above agent)
+    const bars = createStatBars(group);
 
     group.position.copy(startPos);
     scene.add(group);
@@ -38,19 +39,119 @@ export function createAgent(name, color, startPos, scene) {
     return {
         name,
         group,
-        hungerBar,
+        statBars: bars,
         isThinking: false,
         targetPos: startPos.clone(),
         moveSpeed: AGENT.BASE_SPEED,
-        state: 'IDLE', // IDLE, MOVING, THINKING, EATING
-        hunger: 100,
+        state: 'IDLE', // IDLE, MOVING, THINKING, EATING, HARVESTING, CRAFTING
+
+        // Extended stats system
+        stats: {
+            hunger: AGENT.INITIAL_STATS.hunger,
+            warmth: AGENT.INITIAL_STATS.warmth,
+            health: AGENT.INITIAL_STATS.health,
+            energy: AGENT.INITIAL_STATS.energy
+        },
+
+        // Inventory system
+        inventory: createInventory(),
+        inventoryCapacity: AGENT.INVENTORY_CAPACITY,
+
+        // Equipment slots
+        equipment: {},
+
+        // Legacy compatibility
+        hunger: AGENT.INITIAL_STATS.hunger,
         eatingSeed: null,
+
+        // Timing
         lastActionTime: Date.now(),
-        stuckTimer: 0
+        lastStatUpdate: Date.now(),
+        stuckTimer: 0,
+
+        // Death flag
+        isDead: false,
+
+        // Multi-LLM Layer System
+        layers: {
+            strategic: {
+                goal: null,
+                priority: 'SURVIVAL',
+                reasoning: '',
+                updatedAt: null
+            },
+            tactical: {
+                plan: [],
+                currentStep: 0,
+                thought: '',
+                updatedAt: null
+            },
+            immediate: {
+                action: 'IDLE',
+                target: null,
+                state: 'IDLE'
+            }
+        },
+
+        // Per-agent log history
+        logHistory: [],
+
+        // Selection state for UI
+        isSelected: false,
+
+        // Behavior Tree for executing tactical plans
+        behaviorTree: null,
+        lastTacticalRequestTime: 0
     };
 }
 
+
+
+function createStatBars(group) {
+    const barWidth = 0.8;
+    const barHeight = 0.08;
+    const barSpacing = 0.12;
+    const startY = 1.4;
+
+    const bars = {};
+    const statConfigs = [
+        { name: 'hunger', color: COLORS.HUNGER_BAR },
+        { name: 'warmth', color: COLORS.WARMTH_BAR },
+        { name: 'health', color: COLORS.HEALTH_BAR },
+        { name: 'energy', color: COLORS.ENERGY_BAR }
+    ];
+
+    statConfigs.forEach((config, index) => {
+        // Background bar (dark)
+        const bgGeo = new THREE.PlaneGeometry(barWidth, barHeight);
+        const bgMat = new THREE.MeshBasicMaterial({
+            color: 0x222222,
+            side: THREE.DoubleSide
+        });
+        const bgBar = new THREE.Mesh(bgGeo, bgMat);
+        bgBar.position.y = startY + index * barSpacing;
+        group.add(bgBar);
+
+        // Foreground bar (colored)
+        const fgGeo = new THREE.PlaneGeometry(barWidth, barHeight);
+        const fgMat = new THREE.MeshBasicMaterial({
+            color: config.color,
+            side: THREE.DoubleSide
+        });
+        const fgBar = new THREE.Mesh(fgGeo, fgMat);
+        fgBar.position.y = startY + index * barSpacing;
+        fgBar.position.z = 0.01; // Slightly in front
+        group.add(fgBar);
+
+        bars[config.name] = { bg: bgBar, fg: fgBar };
+    });
+
+    return bars;
+}
+
 export function updateAgentMovement(agent, delta = 0.016) {
+    if (agent.isDead) return false;
+
     const pos = agent.group.position;
     const target = agent.targetPos;
     const dist = pos.distanceTo(target);
@@ -80,9 +181,14 @@ export function updateAgentMovement(agent, delta = 0.016) {
         agent.group.quaternion.copy(currentRotation);
         agent.group.quaternion.slerp(targetRotation, 0.1);
 
-        // Move toward target
+        // Move toward target (speed affected by stats)
+        const currentSpeed = calculateMoveSpeed(agent);
         const direction = new THREE.Vector3().subVectors(target, pos).normalize();
-        pos.add(direction.multiplyScalar(agent.moveSpeed));
+        pos.add(direction.multiplyScalar(currentSpeed));
+
+        // Moving consumes energy
+        agent.stats.energy = Math.max(0, agent.stats.energy - AGENT.STAT_DECAY.energy * delta);
+
         return false;
     } else if (agent.state === 'MOVING') {
         pos.copy(target);
@@ -93,7 +199,96 @@ export function updateAgentMovement(agent, delta = 0.016) {
     return false;
 }
 
+function calculateMoveSpeed(agent) {
+    let speed = AGENT.BASE_SPEED;
+
+    // Hunger affects speed
+    if (agent.stats.hunger < AGENT.CRITICAL_THRESHOLD) {
+        speed = Math.min(speed, AGENT.STARVING_SPEED);
+    }
+
+    // Warmth affects speed
+    if (agent.stats.warmth < AGENT.CRITICAL_THRESHOLD) {
+        speed = Math.min(speed, AGENT.FREEZING_SPEED);
+    }
+
+    // Low energy affects speed
+    if (agent.stats.energy < AGENT.CRITICAL_THRESHOLD) {
+        speed *= 0.7;
+    }
+
+    return speed;
+}
+
+export function updateAgentStats(agent, delta = 0.016) {
+    if (agent.isDead) return;
+
+    // v3.2 Delta Clamping: Skip decay if delta is too large (likely tab pause/resume)
+    if (delta > 1.0) {
+        // console.log(`[Stats] Large delta detected (${delta.toFixed(2)}s). Skipping decay to prevent false panic.`);
+        return;
+    }
+
+    // Decay stats over time
+    agent.stats.hunger = Math.max(0, agent.stats.hunger - AGENT.STAT_DECAY.hunger * delta);
+    agent.stats.warmth = Math.max(0, agent.stats.warmth - AGENT.STAT_DECAY.warmth * delta);
+
+    // Health damage when critical stats are low
+    if (agent.stats.hunger <= 0 || agent.stats.warmth <= 0) {
+        agent.stats.health = Math.max(0, agent.stats.health - 0.5 * delta);
+    } else if (agent.stats.hunger > 50 && agent.stats.warmth > 50 && agent.stats.energy > 30) {
+        // Regenerate health when well-fed and warm
+        agent.stats.health = Math.min(100, agent.stats.health + AGENT.HEALTH_REGEN_RATE * delta);
+    }
+
+    // Energy regenerates slowly when not moving
+    if (agent.state !== 'MOVING' && agent.state !== 'HARVESTING') {
+        agent.stats.energy = Math.min(100, agent.stats.energy + 0.05 * delta);
+    }
+
+    // Legacy compatibility
+    agent.hunger = agent.stats.hunger;
+
+    // Check for death
+    if (agent.stats.health <= 0) {
+        agentDeath(agent);
+    }
+
+    // Update visual bars
+    updateStatBars(agent);
+}
+
+function updateStatBars(agent) {
+    Object.entries(agent.statBars).forEach(([stat, bar]) => {
+        const value = agent.stats[stat] / 100;
+        bar.fg.scale.x = Math.max(0.01, value);
+        bar.fg.position.x = -(1 - value) * 0.4; // Shrink from right
+
+        // Color change when critical
+        if (agent.stats[stat] < AGENT.CRITICAL_THRESHOLD) {
+            // Flash red when critical
+            const flash = Math.sin(Date.now() * 0.01) > 0;
+            bar.fg.material.color.setHex(flash ? 0xff0000 : bar.fg.material.color.getHex());
+        }
+    });
+}
+
+function agentDeath(agent) {
+    if (agent.isDead) return;
+
+    agent.isDead = true;
+    agent.state = 'DEAD';
+    console.log(`[DEATH] ${agent.name} has died!`);
+
+    // Visual feedback - turn gray and fall over
+    agent.group.children[0].material.color.setHex(0x444444);
+    agent.group.children[0].material.emissive.setHex(0x000000);
+    agent.group.rotation.z = Math.PI / 2;
+}
+
 export function updateAgentIdle(agent, now) {
+    if (agent.isDead) return;
+
     if (agent.state === 'IDLE' || agent.state === 'THINKING') {
         const bob = Math.sin(now * 0.003) * 0.05;
         agent.group.children[0].position.y = 0.5 + bob;
@@ -107,17 +302,6 @@ export function updateAgentIdle(agent, now) {
     }
 }
 
-export function updateAgentHunger(agent) {
-    agent.hunger = Math.max(0, agent.hunger - AGENT.HUNGER_DECAY_RATE);
-    const ratio = agent.hunger / 100;
-    agent.hungerBar.scale.x = ratio;
-    agent.hungerBar.material.color.setHSL(ratio * 0.3, 1, 0.5);
-
-    agent.moveSpeed = agent.hunger < AGENT.STARVING_THRESHOLD
-        ? AGENT.STARVING_SPEED
-        : AGENT.BASE_SPEED;
-}
-
 export function updateAgentEating(agent) {
     if (!agent.eatingSeed) return false;
 
@@ -128,41 +312,37 @@ export function updateAgentEating(agent) {
     if (seed.scale.x < SEED_EAT_THRESHOLD) {
         agent.group.remove(seed);
         agent.eatingSeed = null;
-        agent.hunger = Math.min(100, agent.hunger + AGENT.HUNGER_REPLENISH);
-        console.log(`[Metabolism] ${agent.name} fully absorbed seed.`);
+        // Eating seeds restores hunger
+        agent.stats.hunger = Math.min(100, agent.stats.hunger + 25);
+        agent.hunger = agent.stats.hunger;
+        console.log(`[Metabolism] ${agent.name} fully absorbed seed. Hunger: ${agent.stats.hunger.toFixed(0)}`);
         return true;
     }
     return false;
 }
 
-// Import seed constants for eating
-import { SEED as SEED_CONFIG } from '../config.js';
-const SEED_EAT_SHRINK = SEED_CONFIG.EAT_SHRINK_RATE;
-const SEED_EAT_THRESHOLD = SEED_CONFIG.EAT_THRESHOLD;
 
-export function serializeAgent(agent, allAgents, seeds, scene, currentWhisper) {
-    const state = {
-        agent: {
-            name: agent.name,
-            position: [agent.group.position.x, 0, agent.group.position.z],
-            hunger: agent.hunger.toFixed(0)
-        },
-        others: allAgents
-            .filter(a => a !== agent)
-            .map(a => ({ name: a.name, position: [a.group.position.x, 0, a.group.position.z] })),
-        objects: seeds
-            .filter(s => s.parent === scene)
-            .map(s => ({
-                id: s.userData.id,
-                type: 'seed',
-                position: [s.position.x, 0, s.position.z],
-                dist: agent.group.position.distanceTo(s.position).toFixed(2)
-            }))
-    };
-
-    if (currentWhisper) {
-        state.god_whisper = currentWhisper;
+// Utility function to restore stats from items
+export function consumeItem(agent, itemType) {
+    if (!agent.inventory[itemType] || agent.inventory[itemType] <= 0) {
+        return false;
     }
 
-    return state;
+    agent.inventory[itemType]--;
+
+    switch (itemType) {
+        case 'berries':
+            agent.stats.hunger = Math.min(100, agent.stats.hunger + AGENT.HUNGER_REPLENISH.berry);
+            break;
+        case 'rawMeat':
+            agent.stats.hunger = Math.min(100, agent.stats.hunger + AGENT.HUNGER_REPLENISH.rawMeat);
+            agent.stats.health = Math.max(0, agent.stats.health - 5); // Raw meat hurts health
+            break;
+        case 'cookedMeat':
+            agent.stats.hunger = Math.min(100, agent.stats.hunger + AGENT.HUNGER_REPLENISH.cookedMeat);
+            break;
+    }
+
+    agent.hunger = agent.stats.hunger;
+    return true;
 }
