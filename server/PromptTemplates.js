@@ -2,7 +2,7 @@
  * PromptTemplates.js - Centralized storage for LLM prompt templates
  */
 
-export function getStrategicPrompt(agentName, state, worldRules, notepad) {
+export function getStrategicPrompt(agentName, state, worldRules) {
     const agent = state.agent;
     const stats = agent.stats || {};
     const inventory = agent.inventory || {};
@@ -17,6 +17,8 @@ export function getStrategicPrompt(agentName, state, worldRules, notepad) {
         return `DYING (<15)`;
     };
 
+    const isCritical = stats.hunger < 15 || stats.warmth < 15 || stats.health < 40;
+
     return `
 YOU ARE THE STRATEGIC MIND OF ${agentName}.
 Your goal is LONG-TERM PRESERVATION.
@@ -29,17 +31,22 @@ CURRENT STATE:
 - Stats: Hunger: ${describe(stats.hunger)}, Warmth: ${describe(stats.warmth)}, Health: ${describe(stats.health)}
 - Inventory: ${JSON.stringify(inventory)}
 - Nearby Campfires: ${nearbyCampfires.length} built nearby.
+- Last Failure: ${JSON.stringify(agent.lastFailure || "None")}
 
 FEASIBILITY CALCULATIONS (Pre-calculated):
 ${JSON.stringify(state.perception?.buildingReadiness || "Unknown", null, 2)}
 
-NOTEPAD (Memories):
-${notepad}
-
 YOUR TASK:
-Define the next mid-term Strategic Goal. 
+Define the next mid-term Strategic Goal.
+
+GOAL PRIORITY RULES:
+1. **SURVIVAL IS PARAMOUNT**. If any stat is DYING or CRITICAL, you MUST prioritize fixing that stat (EAT or WARMTH) immediately. Ignore building if you are dying.
+2. **DO NOT LIE**. Trust the FEASIBILITY CALCULATIONS above. If it says "NO", you cannot build. Gather resources instead.
+3. If "CAN_BUILD_X" says "YES", you SHOULD goal to "BUILD_X".
+4. If "CAN_BUILD_X" says "NO" (Missing materials), you MUST goal to GATHER the missing materials.
+
 Goals should be one of:
-- SURVIVE (Generic)
+- SURVIVE (Generic/Critical State)
 - BUILD_SHELTER (Needs 50 wood, 10 stone)
 - BUILD_CAMPFIRE (Needs 10 wood)
 - GATHER_FOOD (If hunger is low)
@@ -47,24 +54,17 @@ Goals should be one of:
 - GATHER_STONE (Prerequisite for building)
 - EXPLORE (If resources are far/unknown)
 
-SANITY CHECK (CRITICAL):
-Before deciding, LOOK at the FEASIBILITY CALCULATIONS above.
-- If "CAN_BUILD_X" says "YES", you SHOULD goal to "BUILD_X".
-- If "CAN_BUILD_X" says "NO", you MUST goal to GATHER the missing materials first.
-- **DO NOT LIE**. If you say you have materials when the calculation says "NO", you will fail.
-- **DO NOT HALLUCINATE**. Trust the "NO (Missing: X)" text. It is absolute truth.
-
 Respond in VALID JSON ONLY:
 {
   "goal": "GOAL_NAME",
   "priority": "LOW/MEDIUM/HIGH/URGENT",
-  "reasoning": "Brief explanation of why this goal was chosen based on stats and resources",
-  "updateNotepad": "Optional short sentence to remember for later"
+  "reasoning": "Brief explanation. IF DYING, state clearly: 'I am dying, must eat/warm up'.",
+  "updateNotepad": "DEPRECATED - LEAVE EMPTY" 
 }
 `;
 }
 
-export function getTacticalPrompt(agentName, state, worldRules, strategicGoal, notepad) {
+export function getTacticalPrompt(agentName, state, worldRules, strategicGoal) {
     const agent = state.agent;
     const stats = agent.stats || {};
     const inventory = agent.inventory || {};
@@ -92,9 +92,6 @@ ${JSON.stringify(state.perception?.goalRequirements || "N/A", null, 2)}
 PERCEPTION (Nearby Resources):
 ${JSON.stringify(state.resources || [], null, 2)}
 
-NOTEPAD:
-${notepad}
-
 INSTRUCTIONS:
 1. Break the goal into 1-5 specific steps.
 2. Steps must use keywords: MOVE_TO [targetId], HARVEST [targetId], BUILD [recipeId], EAT [itemType], WAIT [ms].
@@ -115,7 +112,7 @@ Respond in VALID JSON ONLY:
 `;
 }
 
-export function getDecidePrompt(agentName, state, worldRules, notepad) {
+export function getDecidePrompt(agentName, state, worldRules) {
     const agent = state.agent;
     const stats = {
         hunger: parseFloat(agent.stats?.hunger) || 100,

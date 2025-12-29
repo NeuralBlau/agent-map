@@ -231,6 +231,7 @@ export class MoveToNode extends BTNode {
             } else {
                 console.log(`[BT] Target ${this.targetId} and all fallbacks missing`);
                 this.status = NodeStatus.FAILURE;
+                agent.lastError = `Target ${this.targetId} missing`;
                 return NodeStatus.FAILURE;
             }
         }
@@ -278,6 +279,7 @@ export class HarvestNode extends BTNode {
 
         if (!resource) {
             this.status = NodeStatus.FAILURE;
+            agent.lastError = `Resource ${this.targetId} not found/depleted`;
             return NodeStatus.FAILURE;
         }
 
@@ -338,6 +340,7 @@ export class BuildNode extends BTNode {
 
         if (!canCraft(agent, this.recipeId)) {
             addLog(`${agent.name}: Missing materials for ${this.recipeId}`, 'system');
+            agent.lastError = `Missing materials for ${this.recipeId}`;
             this.status = NodeStatus.FAILURE;
             return NodeStatus.FAILURE;
         }

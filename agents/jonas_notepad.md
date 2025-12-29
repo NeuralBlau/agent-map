@@ -26,6 +26,18 @@
 ---
 
 ## Important Memories
+- [15:16:48] Shelter is the ONLY thing that matters. MUST be built ASAP.
+- [15:16:44] Shelter - 50 wood, 10 stone - MUST be built ASAP.
+- [15:16:41] Shelter is the ONLY thing that matters. MUST be built ASAP.
+- [15:16:04] Shelter - 50 wood, 10 stone - MUST be built ASAP.
+- [15:15:31] Shelter – 50 wood, 10 stone – MUST be built ASAP.
+- [15:15:04] Shelter is the ONLY thing that matters.
+- [15:14:35] Shelter – 50 wood, 10 stone – MUST be built ASAP.
+- [15:14:33] Shelter is the ONLY thing that matters.
+- [15:14:13] Shelter is the absolute priority - 50 wood, 10 stone needed immediately.
+- [15:14:08] Shelter construction: 50 wood, 10 stone – critical for warmth and long-term safety.
+- [15:14:02] Shelter is the priority – 50 wood, 10 stone needed immediately.
+- [15:13:55] Shelter: 50 wood, 10 stone – immediate priority
 - [14:16:08] Shelter construction is the top priority – 50 wood, 10 stone immediately.
 - [14:15:34] Shelter is the priority – 50 wood, 10 stone needed immediately.
 - [14:15:01] 50 wood, 10 stone - Shelter is the absolute priority.

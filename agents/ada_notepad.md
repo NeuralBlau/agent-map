@@ -26,6 +26,15 @@
 ---
 
 ## Important Memories
+- [15:16:34] 10 wood, 3 stone - critical for immediate survival.
+- [15:16:02] Campfire: 10 wood, 3 stone - top priority.
+- [15:15:30] 10 wood, 3 stone - critical for immediate survival.
+- [15:14:58] Campfire: 10 wood, 3 stone - top priority. Critical for immediate survival.
+- [15:14:48] 10 wood, 3 stone - critical for immediate survival.
+- [15:14:43] Wood and stone are essential for immediate survival and building.
+- [15:14:26] Campfire is top priority - 10 wood, 3 stone.
+- [15:14:03] 10 wood, 3 stone - critical for immediate survival.
+- [15:13:56] Campfire: 10 wood, 3 stone - top priority. Critical for immediate survival.
 - [14:06:30] Campfire: 10 wood, 3 stone - top priority.
 - [14:05:58] Campfire is top priority - 10 wood, 3 stone.
 - [14:05:26] 10 wood, 3 stone - critical for immediate survival.

@@ -59,21 +59,30 @@ export function serializeAgent(agent, allAgents, seeds, scene, currentWhisper, r
     const buildingReadiness = {}; // Simple flags for the prompt: CAN_BUILD_X: YES/NO
 
     Object.entries(RECIPES).forEach(([id, recipe]) => {
-        const gaps = {};
+        const gaps = [];
+        const costs = [];
+        const haves = [];
         let isReady = true;
+
         Object.entries(recipe.requirements).forEach(([item, needed]) => {
             const have = agent.inventory[item] || 0;
+            // Short codes for brevity: Wood->w, Stone->s
+            const code = item.charAt(0); 
+            costs.push(`${needed}${code}`);
+            haves.push(`${have}${code}`);
+            
             if (have < needed) {
-                gaps[item] = `MISSING ${needed - have}`;
+                gaps.push(`${needed - have}${code}`);
                 isReady = false;
             }
         });
-        allRecipeFeasibility[id] = isReady ? "READY" : gaps;
         
-        // The "Glasses" - Simple boolean text for LLM
+        allRecipeFeasibility[id] = isReady ? "READY" : gaps.join(', ');
+        
+        // The "Glasses" - Verbose boolean text for LLM
         buildingReadiness[`CAN_BUILD_${id}`] = isReady ? 
-            "YES (Have Materials)" : 
-            `NO (Missing: ${Object.values(gaps).join(', ')})`;
+            `YES (Cost: ${costs.join(', ')} | Have: ${haves.join(', ')})` : 
+            `NO (Cost: ${costs.join(', ')} | Have: ${haves.join(', ')} | MISSING: ${gaps.join(', ')})`;
     });
 
     // v3 Pre-processor: Material Gaps

@@ -96,3 +96,48 @@ Despite Prompts saying "DO NOT LIE," agents continue to fabricate inventory leve
 2.  **Inventory Injection in Prompt**: The "System Prompt" needs to force the LLM to _repeat_ its inventory before reasoning. "I have X wood. I need Y wood."
 3.  **Tactical Constraints**: Add post-processing to the tactical planner to merge duplicates or cap repetitions (e.g., max 1 harvest instance per target per plan).
 4.  **Simplify Prompts**: The prompts might be _too_ complex, causing the model (Gemma 4b?) to lose coherence. We might need to strip back the "Persona" fluff and focus on "Robot Logic".
+
+---
+
+## Iteration 4: The "Cultist" & The Phantom Builder (Phase 5)
+
+**Session**: Round 6 (Logs: `session_2025-12-28_14-13-52.log`)
+**Changes Active**: Semantic Stat Tags likely active (e.g. "CAN_BUILD_CAMPFIRE: NO (Missing: MISSING 10)"), but behavior suggests deeper issues.
+
+### Critical Behavioral Findings
+
+#### 1. The "Cultist" Behavior (Over-Adherence to Notepad)
+
+Agents have swung from "Stat Blindness" to "Fanatical Obedience". They acknowledge they are dying but refuse to deviate from the "Strategic Priority" set in their Notepad/Memories.
+
+- **Evidence**:
+  - [15:16:04] **Jonas**: "Health is DYING... The Knowledge Base explicitly states that 'Shelter is the ONLY thing that matters.'... Delaying this will lead to death." -> **Action**: Continues gathering wood for Shelter.
+  - [15:15:31] **Ada**: "Hunger is DYING... Campfire is top priority." (Correct identification, but fails to execute).
+- **Diagnosis**: The prompt likely instructs the agent to "Always follow the Notepad/Memories". When the Notepad says "Shelter is the ONLY priority," the agent interprets this literally, overriding basic survival logic (eating/heating) even when acknowledging death is imminent.
+
+#### 2. Cost-Inventory Conflation (The "Matching" Hallucination)
+
+Agents confuse "Missing Amount" with "Required Amount" or "Current Inventory".
+
+- **Evidence**:
+  - [15:15:30] **Ada**: Inventory: `{ wood: 5, stone: 3 }`. Readiness: `CAN_BUILD_CAMPFIRE: NO (Missing: 5)`.
+  - **Reasoning**: "Feasibility calculation confirms I have the required materials (**5 wood**, 2 stone)."
+- **Diagnosis**: The agent sees "Missing: 5" and "Inventory: 5" and hallucinates that the _Cost_ is 5, leading to a false positive "I can build" state. It resolves the cognitive dissonance of "NO" readiness by changing the math in its head to make "YES" true.
+
+#### 3. The "Phantom Build" (Execution Silent Failure)
+
+Agents repeatedly plan to `BUILD` but the action has no effect.
+
+- **Evidence**:
+  - [15:14:52] **Ada**: Inventory `{Wood: 5, Stone: 3}`. Plan: `[BUILD campfire]`.
+  - [15:14:58] **Ada**: Inventory `{Wood: 5, Stone: 3}`. Still planning to build.
+  - The inventory is not consumed, the state does not change.
+- **Diagnosis**: The `BUILD` action is likely failing silently in the backend (e.g., due to specific location requirements, distance checks, or invalid arguments) and not reporting the failure to the agent's context, causing a loop of "Plan Build -> Fail -> Plan Build".
+
+### Recommendations for Phase 6 (Priority & Execution Fixes)
+
+1.  **Survival Override**: The System Prompt must explicitly state: "IF Stats are DYING, YOU MUST IGNORE THE NOTEPAD AND SURVIVE."
+2.  **Explicit Cost vs. Missing**: The `buildingReadiness` string is confusing the model. Change format to: `Campfire (Cost: 10w, 3s | Have: 5w, 3s | MISSING: 5w)`.
+3.  **Action Feedback**: The agent needs to know _why_ an action failed. If `BUILD` fails, the next tick's Context must include `ActionResult: FAILED (Reason: No valid location nearby)`.
+4.  **Backend Debug**: Investigate `Build` action. Does it require a target location? Is it target-less? Why does it fail silently?
+5.  **Disable/Reset Notepad**: Temporarily disable or clear the Notepad injection to break the "Cultist" feedback loop and force agents to rely on immediate sensor data (Stats/Perception) for survival.

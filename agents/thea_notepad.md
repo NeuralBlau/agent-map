@@ -26,6 +26,8 @@
 ---
 
 ## Important Memories
+- [08:50:30] Wood and stone – build the shelter! Shelter is the priority - wood and stone!
+- [08:50:03] Wood and Stone = Shelter!
 - [14:28:51] Wood & Stone = Shelter!
 - [14:28:18] Wood and stone – build the shelter! Shelter is the priority - wood and stone!
 - [14:28:10] Wood and stone – build the shelter! Shelter is the priority - wood and stone!

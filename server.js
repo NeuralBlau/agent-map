@@ -39,85 +39,8 @@ try {
     console.error('[Server] Error loading world rules:', e.message);
 }
 
-// Agent notepads storage
-const agentNotepads = {};
 
-function loadNotepad(agentName) {
-    if (agentNotepads[agentName]) return agentNotepads[agentName];
-
-    const notepadPath = path.join(__dirname, 'agents', `${agentName.toLowerCase()}_notepad.md`);
-
-    if (fs.existsSync(notepadPath)) {
-        agentNotepads[agentName] = fs.readFileSync(notepadPath, 'utf-8');
-    } else {
-        // Create from template
-        const templatePath = path.join(__dirname, 'agents', 'notepad_template.md');
-        if (fs.existsSync(templatePath)) {
-            agentNotepads[agentName] = fs.readFileSync(templatePath, 'utf-8')
-                .replace('{AGENT_NAME}', agentName);
-        } else {
-            agentNotepads[agentName] = `# ${agentName}'s Notepad\n\nNo memories yet.`;
-        }
-    }
-
-    return agentNotepads[agentName];
-}
-
-function saveNotepad(agentName, content) {
-    agentNotepads[agentName] = content;
-    const notepadPath = path.join(__dirname, 'agents', `${agentName.toLowerCase()}_notepad.md`);
-
-    try {
-        fs.mkdirSync(path.dirname(notepadPath), { recursive: true });
-        fs.writeFileSync(notepadPath, content, 'utf-8');
-    } catch (e) {
-        console.error(`[Server] Error saving notepad for ${agentName}:`, e.message);
-    }
-}
-
-function appendToNotepad(agentName, text) {
-    let notepad = loadNotepad(agentName);
-    const cleanText = text.trim();
-
-    // Deduplication: Check last 3 entries
-    if (cleanText.length < 5) return; // Ignore tiny updates
-    
-    // Simple lookback check
-    // Matches "- [Time] Text"
-    const lines = notepad.split('\n');
-    const recentLines = lines.slice(0, 5).join('\n'); // Look at top 5 lines (assuming reverse chrono or similar)
-    
-    // Actually, our format puts new entries at the top of "Important Memories" usually
-    // Let's just regex search for the text content
-    if (recentLines.includes(cleanText)) {
-        console.log(`[Server] Notepad dedupe: Skipping "${cleanText}" for ${agentName}`);
-        return;
-    }
-
-    // Append to Important Memories section
-    const memoriesSection = '## Important Memories';
-    const insertIndex = notepad.indexOf(memoriesSection);
-
-    if (insertIndex !== -1) {
-        const afterHeader = notepad.indexOf('\n', insertIndex) + 1;
-        const timestamp = new Date().toLocaleTimeString();
-        notepad = notepad.slice(0, afterHeader) +
-            `- [${timestamp}] ${cleanText}\n` +
-            notepad.slice(afterHeader);
-    } else {
-        notepad += `\n- ${cleanText}`;
-    }
-
-    // Limit Notepad Size (Keep last 20 memories)
-    const memoryLines = notepad.split('\n').filter(l => l.trim().startsWith('- ['));
-    if (memoryLines.length > 20) {
-        // This is a naive truncation but safe enough for now
-        // Ideally we'd keep the header and just trim the list
-        // For now, let's just leave it to grow slightly, the dedupe is the main fix
-    }
-
-    saveNotepad(agentName, notepad);
-}
+// World rules are loaded at startup into the 'worldRules' variable
 
 // World rules are loaded at startup into the 'worldRules' variable
 
@@ -146,7 +69,7 @@ app.post('/decide', async (req, res) => {
         const others = state.others || [];
         const position = agent.position || [0, 0, 0];
 
-        const prompt = getDecidePrompt(agentName, state, worldRules, loadNotepad(agentName));
+        const prompt = getDecidePrompt(agentName, state, worldRules);
         const result = await callLLM(prompt, agentName);
 
         if (result) {
@@ -163,9 +86,6 @@ app.post('/decide', async (req, res) => {
                 }
             });
 
-            if (result.thought && (result.action === 'BUILD' || result.action === 'CRAFT')) {
-                appendToNotepad(agentName, `${result.action}: ${result.thought}`);
-            }
             return res.json(result);
         }
 
@@ -189,7 +109,7 @@ app.post('/strategic', async (req, res) => {
             return res.json({ goal: 'SURVIVE', priority: 'SURVIVAL', reasoning: 'No state available' });
         }
 
-        const prompt = getStrategicPrompt(agentName, state, worldRules, loadNotepad(agentName));
+        const prompt = getStrategicPrompt(agentName, state, worldRules);
         const result = await callLLM(prompt, agentName);
 
         if (result) {
@@ -203,9 +123,6 @@ app.post('/strategic', async (req, res) => {
                 }
             });
 
-            if (result.notepadUpdate || result.updateNotepad) {
-                appendToNotepad(agentName, result.notepadUpdate || result.updateNotepad);
-            }
             return res.json(result);
         }
 
@@ -228,7 +145,8 @@ app.post('/tactical', async (req, res) => {
             return res.json({ plan: ['WAIT'], currentStep: 0, thought: 'No state available' });
         }
 
-        const prompt = getTacticalPrompt(agentName, state, worldRules, strategicGoal, loadNotepad(agentName));
+        const prompt = getTacticalPrompt(agentName, state, worldRules, strategicGoal);
+
         const result = await callLLM(prompt, agentName);
 
         if (result) {
@@ -285,19 +203,7 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok', model: MODEL, worldRulesLoaded: !!worldRules });
 });
 
-// Notepad endpoints
-app.get('/notepad/:agentName', (req, res) => {
-    const { agentName } = req.params;
-    const content = loadNotepad(agentName);
-    res.json({ content });
-});
 
-app.post('/notepad/:agentName', (req, res) => {
-    const { agentName } = req.params;
-    const { content } = req.body;
-    saveNotepad(agentName, content);
-    res.json({ status: 'saved' });
-});
 
 console.log('[Server] Reached end of file, starting server...');
 app.listen(port, () => {

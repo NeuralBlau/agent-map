@@ -26,6 +26,9 @@
 ---
 
 ## Important Memories
+- [08:50:34] 10 wood, 3 stone - remember the recipe!
+- [08:50:11] 10 wood, 3 stone - MUST build it NOW!
+- [08:50:02] Campfire is KEY! Build it NOW!
 - [14:23:44] 10 wood, 3 stone - MUST build it NOW!
 - [14:23:29] Campfire is priority one - build it now!
 - [14:23:23] 10 wood, 3 stone - MUST build it NOW!

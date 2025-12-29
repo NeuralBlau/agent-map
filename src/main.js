@@ -22,7 +22,7 @@ import { spawnWorldResources, resourceNodes, getResourceNodes, findNearestResour
 import { buildings, applyBuildingEffects, serializeBuildings, createBuilding } from './entities/Building.js';
 
 // Import AI systems
-import { executeAction, getAvailableActions } from './ai/actions.js';
+
 import { getAllRecipes, serializeRecipes, canCraft, startCraft } from './systems/Crafting.js';
 import { findResourceById, startHarvest } from './entities/ResourceNode.js';
 import { consumeItem } from './entities/Agent.js';
@@ -234,73 +234,8 @@ async function tacticalLoop(agent) {
 
 
 // IMMEDIATE LAYER - Action execution (original brainLoop)
-async function brainLoop(agent) {
-  if (agent.state === 'THINKING' || agent.isThinking || agent.isDead) return;
+// DEPRECATED/REMOVED - Replaced by Strategic->Tactical->BehaviorTree pipeline
 
-  agent.state = 'THINKING';
-  agent.isThinking = true;
-
-  try {
-    // Serialize world state for LLM
-    const state = serializeAgent(agent, agents, seeds, scene, currentWhisper, resourceNodes);
-
-    // Add buildings to state
-    state.buildings = serializeBuildings(agent.group.position);
-
-    // Add available actions and recipes
-    state.availableActions = getAvailableActions();
-    state.recipes = getAllRecipes();
-
-    const res = await fetch(API.LLM_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ state, agentName: agent.name })
-    });
-
-    const decision = await res.json();
-
-    // Update immediate layer
-    agent.layers.immediate = {
-      action: decision.action || 'IDLE',
-      target: decision.targetId || decision.target || null,
-      state: agent.state
-    };
-
-    // Add to agent log history
-    addAgentLog(agent, `[IMMEDIATE] ${decision.action}: ${decision.thought?.substring(0, 50) || 'No thought'}`);
-
-    // Update HUD panel and 3D thought bubble with the thought
-    if (decision.thought) {
-      Events.emit('agentStatus', agent, decision.thought);
-    }
-
-    // Update inspector if selected
-    ui.updateInspectorPanel(agent);
-
-    // Clear whisper after it's been processed
-    if (currentWhisper && state.god_whisper) {
-      currentWhisper = null;
-    }
-
-    // Execute the decided action
-    const context = {
-      scene,
-      addLog: (msg, type) => Events.emit('log', msg, type),
-      brainLoop,
-      resourceNodes
-    };
-
-    executeAction(agent, decision, context);
-
-  } catch (e) {
-    console.error(`[BrainLoop] Error for ${agent.name}:`, e);
-    agent.state = 'IDLE';
-    // Retry after delay
-    setTimeout(() => brainLoop(agent), 3000);
-  } finally {
-    agent.isThinking = false;
-  }
-}
 
 // Helper to get a stable string representing agent's meaningful state
 function getStateSnapshot(agent) {
@@ -399,8 +334,8 @@ function animate() {
         agent.lastFailure = null; // Clear failure memory
         strategicLoop(agent); // Get new strategic goal
       } else if (status === NodeStatus.FAILURE) {
-        const reason = activeNode.name || 'Unknown failure';
-        addAgentLog(agent, `[BT] Plan failed at: ${reason}`);
+        const reason = agent.lastError || activeNode.name || 'Unknown failure';
+        addAgentLog(agent, `[BT] Plan failed: ${reason}`);
         agent.lastFailure = {
           step: reason,
           time: new Date().toLocaleTimeString(),
