@@ -141,3 +141,54 @@ Agents repeatedly plan to `BUILD` but the action has no effect.
 3.  **Action Feedback**: The agent needs to know _why_ an action failed. If `BUILD` fails, the next tick's Context must include `ActionResult: FAILED (Reason: No valid location nearby)`.
 4.  **Backend Debug**: Investigate `Build` action. Does it require a target location? Is it target-less? Why does it fail silently?
 5.  **Disable/Reset Notepad**: Temporarily disable or clear the Notepad injection to break the "Cultist" feedback loop and force agents to rely on immediate sensor data (Stats/Perception) for survival.
+
+## Iteration 5: The "Survival Instinct" & Persistent Ghosts (Phase 6 Analysis)
+
+**Session**: Round 7 (Logs: `session_2025-12-29_07-54-51.log`)
+**Changes Active**: Dead Code Removal (actions.js), Notepad Deletion, Explicit Cost Strings (`YES (Cost: 10w...)`), Strategic Failure Context.
+
+### Status Overview
+
+- **Stability**: **EXCELLENT**. No crashes. System runs smoothly without `actions.js`.
+- **Hallucination (Inventory)**: **SOLVED**. Explicit strings (`Have: 30w`) seem to have stopped agents from lying about materials.
+- **Prioritization**: **FAILED**. Agents still choose complex solutions (Build) over immediate ones (Eat) when dying.
+
+### Critical Behavioral Findings
+
+#### 1. The "Ghost Resource" Paralysis
+
+Agents get stuck trying to harvest resources that no longer exist.
+
+- **Observation**: User noted agents trying to harvest "tree X" that was already depleted.
+- **Diagnosis**: The **Tactical Plan** is a static list (`["HARVEST tree_1", "HARVEST tree_1"]`). If `tree_1` is depleted during step 1 (or by another agent), step 2 fails.
+- **Fix**: The `BehaviorTree`'s `MoveToNode` and `HarvestNode` must re-validate the target's existence _before_ executing. If invalid, they should fail fast (or repath to nearest of type).
+
+#### 2. The "Campfire Obsession" (Redundant Building)
+
+Agents build a campfire, then immediately plan to build _another_ one.
+
+- **Evidence**: Agents standing next to a campfire still goal `BUILD_CAMPFIRE`.
+- **Diagnosis**:
+  1.  **Readiness Signal**: `buildingReadiness` says `CAN_BUILD_CAMPFIRE: YES`. The LLM interprets "YES" as "I SHOULD".
+  2.  **Blindness**: The Prompt mentions "Nearby Campfires: 1", but the "Sanity Check" rule says "If CAN_BUILD is YES, you SHOULD goal to BUILD". This instruction overrides the context of already having one.
+- **Fix**: Update `buildingReadiness` to say `SKIP (Already Built Nearby)` if a structure exists within range, OR update Prompt rules to "Only build if NONE nearby".
+
+#### 3. Priority Misalignment (The "Starving Builder")
+
+Agents prioritize Warmth (Building) over Hunger (Eating) even when Starving.
+
+- **Evidence**:
+  - [09:06:16] **Thea**: Hunger `0` (DYING). Warmth `40` (WARN).
+  - **Goal**: `BUILD_CAMPFIRE`.
+  - **Reasoning**: "I am dying from warmth <40... fastest way to restore."
+- **Diagnosis**:
+  - The LLM (Gemma 4b) conflates "Warning" (Warmth) with "Critical" (Hunger).
+  - It views "Building" as a high-value action that solves problems, whereas "Eating" is mundane.
+  - The Prompt's "Survival Override" was not strong enough to break this "Builder" persona.
+- **Conclusion**: Small models struggle with multi-variable utility calculus. We need a hierarchy of needs that _forces_ the decision before the LLM even "thinks" (e.g., Code-based override for Critical Hunger), or a smarter model.
+
+### Recommendations for Iteration 6
+
+1.  **Runtime Target Validation**: Modify `BehaviorTree` nodes to check `findTarget()` result. If null, verify if `resourceNodes` has a replacement or return `FAILURE` immediately.
+2.  **Smart Readiness**: Change `CAN_BUILD_CAMPFIRE` to `NO (Already Built Nearby)` if `nearbyBuildings > 0`. Don't tempt the LLM.
+3.  **Hard-Coded Survival Reflex**: If `Hunger < 10`, force the `Strategic Goal` to `SURVIVE` / `GATHER_FOOD` via code in `server.js` before even calling the LLM? (Or make the Prompt's "System Instructions" extremely aggressive: "IF HUNGER < 10, YOU ARE BANNED FROM BUILDING").

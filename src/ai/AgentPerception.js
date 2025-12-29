@@ -77,12 +77,20 @@ export function serializeAgent(agent, allAgents, seeds, scene, currentWhisper, r
             }
         });
         
-        allRecipeFeasibility[id] = isReady ? "READY" : gaps.join(', ');
-        
-        // The "Glasses" - Verbose boolean text for LLM
-        buildingReadiness[`CAN_BUILD_${id}`] = isReady ? 
-            `YES (Cost: ${costs.join(', ')} | Have: ${haves.join(', ')})` : 
-            `NO (Cost: ${costs.join(', ')} | Have: ${haves.join(', ')} | MISSING: ${gaps.join(', ')})`;
+        // Global Building Limit Check
+        // If it's a building (not a tool) and one already exists on the map, forbid it.
+        const isBuilding = recipe.category === 'building';
+        const alreadyBuilt = isBuilding && buildings.some(b => b.type === recipe.id);
+
+        if (alreadyBuilt) {
+             buildingReadiness[`CAN_BUILD_${id}`] = `NO (Already Built on Map)`;
+             allRecipeFeasibility[id] = "ALREADY_BUILT";
+        } else {
+            // Standard Material Check
+            buildingReadiness[`CAN_BUILD_${id}`] = isReady ? 
+                `YES (Cost: ${costs.join(', ')} | Have: ${haves.join(', ')})` : 
+                `NO (Cost: ${costs.join(', ')} | Have: ${haves.join(', ')} | MISSING: ${gaps.join(', ')})`;
+        }
     });
 
     // v3 Pre-processor: Material Gaps

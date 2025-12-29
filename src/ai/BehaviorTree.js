@@ -220,20 +220,14 @@ export class MoveToNode extends BTNode {
     tick(agent, context) {
         let target = context.findTarget(this.targetId);
 
-        // Lazy Target Fallback: If original target is gone, find nearest of same type
+        // STRICT VALIDATION: If original target is gone, FAIL immediately.
+        // Do NOT try to find a fallback. This prevents "Ghost Resource" loops where
+        // the agent thinks it's going to Tree_A but walks to Tree_B without updating the plan.
         if (!target) {
-            const type = this.targetId.split('_')[0];
-            const fallback = context.findNearestResource?.(type);
-            if (fallback) {
-                console.log(`[BT] Target ${this.targetId} gone, pivoting to nearest ${type}: ${fallback.id}`);
-                this.targetId = fallback.id;
-                target = fallback;
-            } else {
-                console.log(`[BT] Target ${this.targetId} and all fallbacks missing`);
-                this.status = NodeStatus.FAILURE;
-                agent.lastError = `Target ${this.targetId} missing`;
-                return NodeStatus.FAILURE;
-            }
+            console.log(`[BT] Target ${this.targetId} missing/depleted. Failing plan.`);
+            this.status = NodeStatus.FAILURE;
+            agent.lastError = `Target ${this.targetId} missing`;
+            return NodeStatus.FAILURE;
         }
 
         const dist = agent.group.position.distanceTo(target.position);

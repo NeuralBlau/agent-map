@@ -18,11 +18,13 @@ export function getStrategicPrompt(agentName, state, worldRules) {
     };
 
     const isCritical = stats.hunger < 15 || stats.warmth < 15 || stats.health < 40;
+    const emergencyDirective = isCritical ? 
+        `\n!!! EMERGENCY PROTOCOL !!! VITAL SIGNS CRITICAL. IGNORE ALL BUILDING GOALS. YOU MUST GATHER FOOD OR WARM UP. IF YOU BUILD, YOU DIE.\n` : "";
 
     return `
 YOU ARE THE STRATEGIC MIND OF ${agentName}.
 Your goal is LONG-TERM PRESERVATION.
-
+${emergencyDirective}
 WORLD RULES & KNOWLEDGE:
 ${worldRules}
 
@@ -44,6 +46,7 @@ GOAL PRIORITY RULES:
 2. **DO NOT LIE**. Trust the FEASIBILITY CALCULATIONS above. If it says "NO", you cannot build. Gather resources instead.
 3. If "CAN_BUILD_X" says "YES", you SHOULD goal to "BUILD_X".
 4. If "CAN_BUILD_X" says "NO" (Missing materials), you MUST goal to GATHER the missing materials.
+5. If "CAN_BUILD_X" says "NO" (Already Built), choose a different goal (e.g. EXPLORE or SURVIVE).
 
 Goals should be one of:
 - SURVIVE (Generic/Critical State)
