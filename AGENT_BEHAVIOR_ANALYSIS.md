@@ -192,3 +192,56 @@ Agents prioritize Warmth (Building) over Hunger (Eating) even when Starving.
 1.  **Runtime Target Validation**: Modify `BehaviorTree` nodes to check `findTarget()` result. If null, verify if `resourceNodes` has a replacement or return `FAILURE` immediately.
 2.  **Smart Readiness**: Change `CAN_BUILD_CAMPFIRE` to `NO (Already Built Nearby)` if `nearbyBuildings > 0`. Don't tempt the LLM.
 3.  **Hard-Coded Survival Reflex**: If `Hunger < 10`, force the `Strategic Goal` to `SURVIVE` / `GATHER_FOOD` via code in `server.js` before even calling the LLM? (Or make the Prompt's "System Instructions" extremely aggressive: "IF HUNGER < 10, YOU ARE BANNED FROM BUILDING").
+
+## Iteration 6: The Berry Paradox & The Warmth Trap (Phase 7 Analysis)
+
+**Session**: Round 8 (Logs: `session_2025-12-29_08-37-23.log`)
+**Changes Active**: Global Perception, Lizard Brain, Strict Movement.
+
+### Status Overview
+
+- **Stability**: **EXCELLENT**. No crashes.
+- **Survival**: **IMPROVED**. Agents eat when dying (Lizard Brain works).
+- **Logic**: **FLAWED**. Critical hallucinations regarding item interaction and stat effects.
+
+### Critical Behavioral Findings
+
+#### 1. The "Berry Telekinesis" (Missing Harvest Step)
+
+Agents plan to eat berries they don't have.
+
+- **Observation**: Tactical Plan: `["MOVE_TO berry_31", "EAT berry_31"]`.
+- **Result**: Agent moves to bush, then tries to eat. `Action EAT failed: Item berry not in inventory`.
+- **Diagnosis**: The LLM assumes `MOVE_TO` an interactable implies "picking it up" or that it can eat directly from the bush (like a grazing animal). It skips the explicit `HARVEST` step.
+- **Fix**:
+  - **Prompt Engineering**: Explicitly instruct: "You CANNOT eat from the ground. You must HARVEST first."
+  - **Behavior Tree Correction**: Update `EatNode` to check `CanConsume`. If item missing but `IsNear(source)`, trigger a sub-routine or fail with specific message "HARVEST FIRST".
+
+#### 2. The "Warmth Trap" (Campfire Hunger Hallucination)
+
+Agents think Campfires cure Hunger.
+
+- **Observation**:
+  - **Kira**: "My Hunger is WARN (62)... Primary goal is to build a campfire."
+- **Diagnosis**:
+  - **Association**: The model associates "Campfire" with "Cooking" -> "Food" -> "Hunger".
+  - **Missing Feature**: We have no cooking logic, so the campfire _only_ provides warmth. The agent is planning for a feature that doesn't exist.
+- **Fix**:
+  - **Prompt Clarity**: Explicitly state in World Rules: "CAMPFIRES DO NOT PROVIDE FOOD. THEY ONLY PROVIDE WARMTH."
+  - **Remove Distractions**: Ensure no "Meat" or "Cooking" references exist in prompts/recipes.
+
+#### 3. Inefficient Gluttony (The "Grazer" Syndrome)
+
+Agents walk to berries to eat them, even if they have berries in their pocket.
+
+- **Observation**: Agent has 3 berries. Sees a bush 10m away. Plan: `MOVE_TO bush`, `EAT`.
+- **Diagnosis**: The LLM perceives the "Berry Bush" as the _source_ of the `EAT` action, ignoring the abstract inventory.
+- **Fix**:
+  - **Logic**: If `Goal == EAT` and `Inventory > 0`, the Tactical Plan should probably be `["EAT"]` (Instant), not `MOVE_TO`.
+  - This requires the Tactical Prompt to remind the agent: "CHECK INVENTORY FIRST. If you have food, just EAT it. Do not walk."
+
+### Recommendations for Iteration 7
+
+1.  **Prompt Hardening**: "HARVEST before EAT", "CAMPFIRE != FOOD", "CHECK INVENTORY".
+2.  **Smart Eat Node**: Modify `EatNode` to be smarter (optional) or rely on Prompt Instructions.
+3.  **Code Cleanup**: Verify `recipes` or `items` don't mention cooked meat to stop the cooking hallucination.

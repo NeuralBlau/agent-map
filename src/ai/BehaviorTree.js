@@ -383,16 +383,43 @@ export class EatNode extends BTNode {
     }
 
     tick(agent, context) {
-        const { consumeItem, addLog } = context;
+        const { consumeItem, addLog, findTarget } = context;
 
         let foodType = this.itemType;
         if (!foodType) {
-            const edibles = ['cookedMeat', 'rawMeat', 'berries'];
+            // Anti-Hallucination: Removed cookedMeat/rawMeat. Only consume what exists.
+            const edibles = ['berries']; 
             foodType = edibles.find(item => agent.inventory?.[item] > 0);
+            
+            // If no food in inventory, check if we are standing near a bush (Telekinesis check)
+            if (!foodType) {
+                const nearFood = edibles.find(item => {
+                   const target = findTarget(item); // Checks resources/seeds
+                   if (target) {
+                       const dist = agent.group.position.distanceTo(target.position);
+                       return dist < 5;
+                   }
+                   return false;
+                });
+
+                if (nearFood) {
+                    this.status = NodeStatus.FAILURE;
+                    agent.lastError = `Item ${nearFood} visible but not in inventory. YOU MUST HARVEST FIRST.`;
+                    return NodeStatus.FAILURE;
+                }
+            }
         }
 
         if (!foodType || !agent.inventory?.[foodType]) {
             this.status = NodeStatus.FAILURE;
+            // Specific feedback for singular item request
+            if (this.itemType) {
+                 const target = findTarget(this.itemType);
+                 if (target && agent.group.position.distanceTo(target.position) < 5) {
+                     agent.lastError = `Item ${this.itemType} visible but not in inventory. YOU MUST HARVEST FIRST.`;
+                     return NodeStatus.FAILURE;
+                 }
+            }
             return NodeStatus.FAILURE;
         }
 

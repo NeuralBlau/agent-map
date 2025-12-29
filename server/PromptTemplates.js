@@ -47,6 +47,7 @@ GOAL PRIORITY RULES:
 3. If "CAN_BUILD_X" says "YES", you SHOULD goal to "BUILD_X".
 4. If "CAN_BUILD_X" says "NO" (Missing materials), you MUST goal to GATHER the missing materials.
 5. If "CAN_BUILD_X" says "NO" (Already Built), choose a different goal (e.g. EXPLORE or SURVIVE).
+6. **CAMPFIRES DO NOT PROVIDE FOOD**. They only provide Warmth. Do not build them to cure Hunger.
 
 Goals should be one of:
 - SURVIVE (Generic/Critical State)
@@ -72,6 +73,13 @@ export function getTacticalPrompt(agentName, state, worldRules, strategicGoal) {
     const stats = agent.stats || {};
     const inventory = agent.inventory || {};
     const failureMemory = agent.lastFailure ? `\nLAST PLAN FAILED AT: ${agent.lastFailure.step} because of the environment. AVOID DOING THE SAME THING.` : "";
+
+    // LOGIC INJECTION: Anti-Grazer Hint
+    // If agent has food and is hungry/surviving, tell them to EAT immediately.
+    let tacticalHint = "";
+    if ((inventory.berries > 0) && (strategicGoal.goal === 'SURVIVE' || strategicGoal.goal === 'GATHER_FOOD')) {
+        tacticalHint = `\n[SYSTEM HINT]: You have ${inventory.berries} berries in inventory. PLAN 'EAT berries' IMMEDIATELY. Do not walk to a bush.`;
+    }
 
     return `
 YOU ARE THE TACTICAL MIND OF ${agentName}.
@@ -102,6 +110,8 @@ INSTRUCTIONS:
 4. If no specific ID is visible for a required resource, use generic MoveTo: "MOVE_TO tree" or "MOVE_TO rock".
 5. ALWAYS ensure you have the materials before a BUILD step.
 6. If the Goal is GATHER_X, ensure the plan ends with at least one HARVEST step.
+7. YOU CANNOT EAT FROM THE GROUND. You must HARVEST first.
+8. ${tacticalHint}
 
 Respond in VALID JSON ONLY:
 {
