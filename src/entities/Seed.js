@@ -6,17 +6,11 @@ import { SEED, COLORS, WORLD } from '../config.js';
 
 export const seeds = [];
 
-export function createSeed(id, x, z, scene) {
-    const seed = new THREE.Mesh(
-        new THREE.IcosahedronGeometry(0.3, 0),
-        new THREE.MeshStandardMaterial({
-            color: COLORS.SEED,
-            emissive: COLORS.SEED,
-            emissiveIntensity: 0.5
-        })
-    );
+export function createSeed(id, x, z, visualDirector) {
+    const scene = visualDirector.scene;
+    const seed = visualDirector.getAsset('seed');
+    
     seed.position.set(x, 0.3, z);
-    seed.castShadow = true;
     seed.userData = { id };
     scene.add(seed);
     seeds.push(seed);
@@ -30,13 +24,14 @@ export function updateSeedAnimation(seed, now) {
     }
 }
 
-export function checkSeedRespawn(scene, addLog) {
+export function checkSeedRespawn(visualDirector, addLog) {
+    const scene = visualDirector.scene;
     const activeSeeds = seeds.filter(s => s.parent === scene);
 
     if (activeSeeds.length < SEED.MIN_COUNT && Math.random() < SEED.RESPAWN_CHANCE) {
         const x = (Math.random() - 0.5) * WORLD.SPAWN_RANGE;
         const z = (Math.random() - 0.5) * WORLD.SPAWN_RANGE;
-        createSeed(`seed_gen_${Date.now()}`, x, z, scene);
+        createSeed(`seed_gen_${Date.now()}`, x, z, visualDirector);
         if (addLog) addLog('A new golden seed has emerged in the wild.', 'system');
     }
 }

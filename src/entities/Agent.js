@@ -9,26 +9,12 @@ import { RECIPES } from '../systems/Crafting.js';
 const SEED_EAT_SHRINK = SEED_CONFIG.EAT_SHRINK_RATE;
 const SEED_EAT_THRESHOLD = SEED_CONFIG.EAT_THRESHOLD;
 
-export function createAgent(name, color, startPos, scene) {
-    const group = new THREE.Group();
-
-    // Body
-    const body = new THREE.Mesh(
-        new THREE.BoxGeometry(1, 1, 1),
-        new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.2 })
-    );
-    body.position.y = 0.5;
-    body.castShadow = true;
-    group.add(body);
-
-    // Eyes
-    const eyeGeo = new THREE.BoxGeometry(0.2, 0.2, 0.1);
-    const eyeMat = new THREE.MeshBasicMaterial({ color: COLORS.EYE });
-    const e1 = new THREE.Mesh(eyeGeo, eyeMat);
-    e1.position.set(0.25, 0.7, 0.5);
-    const e2 = new THREE.Mesh(eyeGeo, eyeMat);
-    e2.position.set(-0.25, 0.7, 0.5);
-    group.add(e1, e2);
+export function createAgent(name, color, startPos, visualDirector) {
+    const scene = visualDirector.scene;
+    
+    // Get high-quality mesh from visual system
+    const group = visualDirector.getAsset('agent', { color });
+    const { body, eyes, mouth } = group.userData;
 
     // Stat Bars (stacked vertically above agent)
     const bars = createStatBars(group);
@@ -44,6 +30,15 @@ export function createAgent(name, color, startPos, scene) {
         targetPos: startPos.clone(),
         moveSpeed: AGENT.BASE_SPEED,
         state: 'IDLE', // IDLE, MOVING, THINKING, EATING, HARVESTING, CRAFTING
+
+        // Visual References
+        body,
+        eyes,
+        mouth,
+        
+        // Animation State
+        blinkTimer: 0,
+        walkCycle: 0,
 
         // Extended stats system
         stats: {
@@ -154,7 +149,11 @@ export function updateAgentMovement(agent, delta = 0.016) {
 
     const pos = agent.group.position;
     const target = agent.targetPos;
-    const dist = pos.distanceTo(target);
+    
+    // Horizontal distance (ignore Y)
+    const horizontalPos = new THREE.Vector2(pos.x, pos.z);
+    const horizontalTarget = new THREE.Vector2(target.x, target.z);
+    const dist = horizontalPos.distanceTo(horizontalTarget);
 
     // Stuck Watchdog
     if (agent.state === 'MOVING') {
@@ -186,13 +185,25 @@ export function updateAgentMovement(agent, delta = 0.016) {
         const direction = new THREE.Vector3().subVectors(target, pos).normalize();
         pos.add(direction.multiplyScalar(currentSpeed));
 
+        // Squash and stretch animation
+        agent.walkCycle += delta * 15;
+        const bounce = Math.abs(Math.sin(agent.walkCycle));
+        const stretch = 1 + bounce * 0.2;
+        const squash = 1 - bounce * 0.1;
+        agent.group.scale.set(squash, stretch, squash);
+        agent.group.position.y = 0.5 + bounce * 0.2;
+
         // Moving consumes energy
         agent.stats.energy = Math.max(0, agent.stats.energy - AGENT.STAT_DECAY.energy * delta);
 
         return false;
     } else if (agent.state === 'MOVING') {
-        pos.copy(target);
+        pos.x = target.x;
+        pos.z = target.z;
+        pos.y = 0.5;
         agent.state = 'IDLE';
+        agent.walkCycle = 0;
+        agent.group.scale.set(1, 1, 1);
         console.log(`[Movement] ${agent.name} reached target.`);
         return true; // Signal to trigger brainLoop
     }
@@ -289,15 +300,31 @@ function agentDeath(agent) {
 export function updateAgentIdle(agent, now) {
     if (agent.isDead) return;
 
-    if (agent.state === 'IDLE' || agent.state === 'THINKING') {
+    if (agent.state === 'IDLE' || agent.state === 'THINKING' || agent.state === 'MOVING') {
         const bob = Math.sin(now * 0.003) * 0.05;
-        agent.group.children[0].position.y = 0.5 + bob;
+        
+        if (agent.state !== 'MOVING') {
+            agent.group.position.y = 0.5 + bob;
+            agent.group.scale.set(1, 1, 1); // Reset walk cycle scale
+        }
+
+        // Blinking logic
+        agent.blinkTimer -= 0.016; // Approx delta
+        if (agent.blinkTimer <= 0) {
+            // Start blink or finish blink
+            const isBlinkClosed = agent.eyes[0].scale.y < 0.5;
+            if (isBlinkClosed) {
+                agent.eyes.forEach(e => e.scale.y = 1);
+                agent.blinkTimer = 2 + Math.random() * 4; // Next blink in 2-6s
+            } else {
+                agent.eyes.forEach(e => e.scale.y = 0.1);
+                agent.blinkTimer = 0.15; // Duration of blink
+            }
+        }
 
         if (agent.state === 'THINKING') {
             const pulse = 1 + Math.sin(now * 0.01) * 0.05;
             agent.group.scale.set(pulse, pulse, pulse);
-        } else {
-            agent.group.scale.set(1, 1, 1);
         }
     }
 }

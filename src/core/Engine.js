@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { WORLD, COLORS } from '../config.js';
 
 import { initThoughtBubbleRenderer, renderThoughtBubbles } from '../ui/ThoughtBubble.js';
+import VisualDirector from '../visuals/VisualDirector.js';
 
 /**
  * Engine class - Handles Three.js rendering, lighting, and core scene setup
@@ -12,7 +13,6 @@ export class Engine {
         this.container = container;
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color(COLORS.BACKGROUND);
-        this.scene.fog = new THREE.Fog(COLORS.BACKGROUND, WORLD.FOG_NEAR, WORLD.FOG_FAR);
 
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         this.camera.position.set(15, 15, 15);
@@ -31,50 +31,45 @@ export class Engine {
         this.controls.enableDamping = true;
         this.controls.dampingFactor = 0.05;
 
-        this._initLighting();
-        this._initGround();
+        // NEW: Centralized Visual System
+        this.visualDirector = new VisualDirector(this);
+
         this._initEvents();
-    }
-
-    _initLighting() {
-        const ambientLight = new THREE.AmbientLight(COLORS.LIGHT_AMBIENT, 0.4);
-        this.scene.add(ambientLight);
-
-        const directionalLight = new THREE.DirectionalLight(COLORS.LIGHT_DIRECTIONAL, 1.2);
-        directionalLight.position.set(5, 15, 5);
-        directionalLight.castShadow = true;
-        directionalLight.shadow.mapSize.width = 2048;
-        directionalLight.shadow.mapSize.height = 2048;
-        this.scene.add(directionalLight);
-    }
-
-    _initGround() {
-        const groundGeometry = new THREE.PlaneGeometry(WORLD.GROUND_SIZE, WORLD.GROUND_SIZE);
-        const groundMaterial = new THREE.MeshStandardMaterial({
-            color: COLORS.GROUND,
-            roughness: 0.8,
-            metalness: 0.2
-        });
-        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-        ground.rotation.x = -Math.PI / 2;
-        ground.receiveShadow = true;
-        this.scene.add(ground);
-
-        const grid = new THREE.GridHelper(WORLD.GRID_SIZE, WORLD.GRID_DIVISIONS, COLORS.GRID_PRIMARY, COLORS.GRID_SECONDARY);
-        this.scene.add(grid);
     }
 
     _initEvents() {
         window.addEventListener('resize', () => {
-            this.camera.aspect = window.innerWidth / window.innerHeight;
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            this.camera.aspect = width / height;
             this.camera.updateProjectionMatrix();
-            this.renderer.setSize(window.innerWidth, window.innerHeight);
+            this.renderer.setSize(width, height);
+            
+            // Notify Visual Systems of resize
+            if (this.visualDirector && this.visualDirector.vfx) {
+                this.visualDirector.vfx.handleResize(width, height);
+            }
         });
     }
 
     render() {
+        const delta = 0.016; // Approx 60fps
+        const now = Date.now();
+        
         this.controls.update();
+        
+        // Update Visual Systems
+        if (this.visualDirector) {
+            this.visualDirector.update(delta, now);
+        }
+
         renderThoughtBubbles(this.scene, this.camera, this.css2dRenderer);
-        this.renderer.render(this.scene, this.camera);
+        
+        // Let VisualDirector/VFX handle the actual render pass
+        if (this.visualDirector && this.visualDirector.vfx) {
+            this.visualDirector.vfx.render();
+        } else {
+            this.renderer.render(this.scene, this.camera);
+        }
     }
 }

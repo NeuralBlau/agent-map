@@ -12,42 +12,10 @@ let buildingIdCounter = 0;
 /**
  * Create a campfire building
  */
-export function createCampfire(x, z, scene, builderId = null) {
-    const group = new THREE.Group();
+export function createCampfire(x, z, visualDirector, builderId = null) {
+    const scene = visualDirector.scene;
+    const group = visualDirector.getAsset('campfire');
     const id = `campfire_${++buildingIdCounter}`;
-
-    // Stone ring
-    const ringGeo = new THREE.RingGeometry(0.4, 0.6, 8);
-    const ringMat = new THREE.MeshStandardMaterial({
-        color: COLORS.ROCK,
-        side: THREE.DoubleSide
-    });
-    const ring = new THREE.Mesh(ringGeo, ringMat);
-    ring.rotation.x = -Math.PI / 2;
-    ring.position.y = 0.05;
-    group.add(ring);
-
-    // Fire logs
-    const logGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.4, 6);
-    const logMat = new THREE.MeshStandardMaterial({ color: COLORS.TREE_TRUNK });
-    for (let i = 0; i < 4; i++) {
-        const log = new THREE.Mesh(logGeo, logMat);
-        log.rotation.z = Math.PI / 2;
-        log.rotation.y = (i / 4) * Math.PI;
-        log.position.y = 0.1;
-        group.add(log);
-    }
-
-    // Fire glow (simple orange/yellow sphere)
-    const fireGeo = new THREE.SphereGeometry(0.25, 8, 8);
-    const fireMat = new THREE.MeshBasicMaterial({
-        color: 0xff6600,
-        transparent: true,
-        opacity: 0.8
-    });
-    const fire = new THREE.Mesh(fireGeo, fireMat);
-    fire.position.y = 0.3;
-    group.add(fire);
 
     // Point light for warmth visual
     const light = new THREE.PointLight(0xff6600, 1, 8);
@@ -79,37 +47,10 @@ export function createCampfire(x, z, scene, builderId = null) {
 /**
  * Create a shelter building
  */
-export function createShelter(x, z, scene, builderId = null) {
-    const group = new THREE.Group();
+export function createShelter(x, z, visualDirector, builderId = null) {
+    const scene = visualDirector.scene;
+    const group = visualDirector.getAsset('shelter');
     const id = `shelter_${++buildingIdCounter}`;
-
-    // Base platform
-    const baseGeo = new THREE.BoxGeometry(3, 0.2, 3);
-    const baseMat = new THREE.MeshStandardMaterial({ color: COLORS.TREE_TRUNK });
-    const base = new THREE.Mesh(baseGeo, baseMat);
-    base.position.y = 0.1;
-    group.add(base);
-
-    // Corner posts
-    const postGeo = new THREE.BoxGeometry(0.2, 2, 0.2);
-    const postMat = new THREE.MeshStandardMaterial({ color: COLORS.TREE_TRUNK });
-    const positions = [
-        [-1.2, 1, -1.2], [1.2, 1, -1.2],
-        [-1.2, 1, 1.2], [1.2, 1, 1.2]
-    ];
-    positions.forEach(pos => {
-        const post = new THREE.Mesh(postGeo, postMat);
-        post.position.set(...pos);
-        group.add(post);
-    });
-
-    // Roof (simple pyramid)
-    const roofGeo = new THREE.ConeGeometry(2.2, 1.5, 4);
-    const roofMat = new THREE.MeshStandardMaterial({ color: COLORS.TREE_LEAVES });
-    const roof = new THREE.Mesh(roofGeo, roofMat);
-    roof.position.y = 2.5;
-    roof.rotation.y = Math.PI / 4;
-    group.add(roof);
 
     group.position.set(x, 0, z);
     scene.add(group);
@@ -136,12 +77,12 @@ export function createShelter(x, z, scene, builderId = null) {
 /**
  * Create a building by type
  */
-export function createBuilding(type, x, z, scene, builderId = null) {
+export function createBuilding(type, x, z, visualDirector, builderId = null) {
     switch (type.toLowerCase()) {
         case 'campfire':
-            return createCampfire(x, z, scene, builderId);
+            return createCampfire(x, z, visualDirector, builderId);
         case 'shelter':
-            return createShelter(x, z, scene, builderId);
+            return createShelter(x, z, visualDirector, builderId);
         default:
             console.log(`[Building] Unknown building type: ${type}`);
             return null;

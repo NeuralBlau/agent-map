@@ -15,32 +15,45 @@ The agents use a hierarchical intelligence system to bridge high-level reasoning
 ## 📁 Project Structure
 
 ### 🖥️ Client (src/)
+
 The frontend is built with **Vanilla JS** and **Three.js**.
 
 - **Core**
+
   - `core/Engine.js`: Handles rendering, lighting, camera, and the main animation loop.
   - `core/World.js`: Manages the spawning and state of all entities in the game world.
 
 - **AI Layer**
+
   - `ai/AgentPerception.js`: Sterilizes the complex 3D world into a text-based format the LLM can understand.
   - `ai/BehaviorTree.js`: Contains the logic for Sequences, Selectors, and Action nodes (Move, Harvest, Eat, Build).
   - `ai/PlanExecutor.js`: Parses natural language plans from the LLM into executable BT node structures.
   - `main.js`: The main orchestrator that connects the engine, world, and AI loops.
 
 - **Entities**
+
   - `entities/Agent.js`: Physical properties, stats (hunger/warmth), and movement logic for agents.
   - `entities/ResourceNode.js`: Logic for trees, rocks, and berry bushes.
   - `entities/Building.js`: Logic for structures like campfires and shelters.
 
 - **Systems**
+
   - `systems/Events.js`: A PubSub system used to decouple game logic from UI updates.
   - `systems/Inventory.js`: Management of agent items and resource collection.
+
+- **Visual System (visuals/)**
+
+  - `visuals/VisualDirector.js`: The central orchestrator that monitors game state and triggers visual transitions.
+  - `visuals/MaterialLibrary.js`: Centralized registry for all 3D assets, geometries, and materials. Decouples logic from assets.
+  - `visuals/EnvironmentManager.js`: Manages scene-wide elements like lighting, terrain, and atmospheric decorators.
+  - `visuals/VFXManager.js`: Handles post-processing effects (Bloom, Color Correction) via `EffectComposer`.
 
 - **UI**
   - `ui/UIManager.js`: Central manager for HUD panels, the inspector, and log displays.
   - `ui/ThoughtBubble.js`: Handles the 3D CSS2D bubbles that display what agents are thinking.
 
 ### 🌐 Server (server/)
+
 The backend manages communication with the LLM (e.g., Ollama).
 
 - `server.js`: Express server providing endpoints for `/strategic`, `/tactical`, and `/decide`.
@@ -52,6 +65,7 @@ The backend manages communication with the LLM (e.g., Ollama).
 ## 🛠️ Setup & Running
 
 1.  **Install Dependencies**:
+
     ```bash
     npm install
     ```
@@ -60,11 +74,13 @@ The backend manages communication with the LLM (e.g., Ollama).
     Ensure you have [Ollama](https://ollama.ai/) running with your chosen model (default: `mistral` or `llama3`).
 
 3.  **Run the Server**:
+
     ```bash
     node server.js
     ```
 
 4.  **Run the Game**:
+
     ```bash
     npm run dev
     ```
@@ -73,6 +89,7 @@ The backend manages communication with the LLM (e.g., Ollama).
     Once the page loads, click the **"Start AI"** button in the HUD to activate the agents.
 
 ## 🧠 Technology Stack
+
 - **Frontend**: Three.js (3D), CSS2D (UI Overlays), Vanilla Javascript.
 - **Backend**: Node.js, Express, Axios.
 - **AI**: Ollama (Local LLM), Behavior Tree Pattern.

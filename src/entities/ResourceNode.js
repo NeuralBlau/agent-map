@@ -13,28 +13,10 @@ let nodeIdCounter = 0;
 /**
  * Create a harvestable tree
  */
-export function createTree(x, z, scene) {
-    const group = new THREE.Group();
+export function createTree(x, z, visualDirector) {
+    const scene = visualDirector.scene;
+    const group = visualDirector.getAsset('tree');
     const id = `tree_${++nodeIdCounter}`;
-
-    // Trunk
-    const trunk = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.15, 0.25, 1.5, 8),
-        new THREE.MeshStandardMaterial({ color: COLORS.TREE_TRUNK })
-    );
-    trunk.position.y = 0.75;
-    trunk.castShadow = true;
-    group.add(trunk);
-
-    // Leaves (multi-sphere for organic look)
-    const leafMat = new THREE.MeshStandardMaterial({ color: COLORS.TREE_LEAVES });
-    const leaf1 = new THREE.Mesh(new THREE.SphereGeometry(0.6, 8, 6), leafMat);
-    leaf1.position.set(0, 1.6, 0);
-    const leaf2 = new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 6), leafMat);
-    leaf2.position.set(0.3, 1.9, 0.2);
-    const leaf3 = new THREE.Mesh(new THREE.SphereGeometry(0.35, 8, 6), leafMat);
-    leaf3.position.set(-0.25, 1.85, -0.15);
-    group.add(leaf1, leaf2, leaf3);
 
     group.position.set(x, 0, z);
     scene.add(group);
@@ -62,38 +44,10 @@ export function createTree(x, z, scene) {
 /**
  * Create a harvestable rock/stone node
  */
-export function createRock(x, z, scene) {
-    const group = new THREE.Group();
+export function createRock(x, z, visualDirector) {
+    const scene = visualDirector.scene;
+    const group = visualDirector.getAsset('rock');
     const id = `rock_${++nodeIdCounter}`;
-
-    // Main rock
-    const rock = new THREE.Mesh(
-        new THREE.DodecahedronGeometry(0.5),
-        new THREE.MeshStandardMaterial({
-            color: COLORS.ROCK,
-            roughness: 0.9,
-            metalness: 0.1
-        })
-    );
-    rock.position.y = 0.3;
-    rock.rotation.set(Math.random(), Math.random(), Math.random());
-    rock.castShadow = true;
-    group.add(rock);
-
-    // Smaller rocks nearby
-    for (let i = 0; i < 2; i++) {
-        const smallRock = new THREE.Mesh(
-            new THREE.DodecahedronGeometry(0.2),
-            new THREE.MeshStandardMaterial({ color: COLORS.ROCK })
-        );
-        smallRock.position.set(
-            (Math.random() - 0.5) * 0.8,
-            0.15,
-            (Math.random() - 0.5) * 0.8
-        );
-        smallRock.rotation.set(Math.random(), Math.random(), Math.random());
-        group.add(smallRock);
-    }
 
     group.position.set(x, 0, z);
     scene.add(group);
@@ -121,37 +75,10 @@ export function createRock(x, z, scene) {
 /**
  * Create a harvestable berry bush
  */
-export function createBerryBush(x, z, scene) {
-    const group = new THREE.Group();
+export function createBerryBush(x, z, visualDirector) {
+    const scene = visualDirector.scene;
+    const group = visualDirector.getAsset('berry_bush');
     const id = `berry_${++nodeIdCounter}`;
-
-    // Bush base
-    const bush = new THREE.Mesh(
-        new THREE.SphereGeometry(0.4, 8, 6),
-        new THREE.MeshStandardMaterial({ color: COLORS.BERRY_BUSH })
-    );
-    bush.position.y = 0.3;
-    bush.scale.set(1, 0.7, 1);
-    group.add(bush);
-
-    // Berries (small spheres)
-    const berryMat = new THREE.MeshStandardMaterial({
-        color: COLORS.BERRY,
-        emissive: COLORS.BERRY,
-        emissiveIntensity: 0.2
-    });
-    for (let i = 0; i < 5; i++) {
-        const berry = new THREE.Mesh(
-            new THREE.SphereGeometry(0.08, 6, 6),
-            berryMat
-        );
-        berry.position.set(
-            (Math.random() - 0.5) * 0.5,
-            0.2 + Math.random() * 0.3,
-            (Math.random() - 0.5) * 0.5
-        );
-        group.add(berry);
-    }
 
     group.position.set(x, 0, z);
     scene.add(group);
@@ -289,28 +216,29 @@ export function findResourceById(id) {
 /**
  * Spawn initial resources in the world
  */
-export function spawnWorldResources(scene) {
+export function spawnWorldResources(visualDirector) {
+    const scene = visualDirector.scene;
     const spawnRange = WORLD.SPAWN_RANGE;
 
     // Spawn trees
     for (let i = 0; i < WORLD.TREE_COUNT; i++) {
         const x = (Math.random() - 0.5) * spawnRange * 2;
         const z = (Math.random() - 0.5) * spawnRange * 2;
-        createTree(x, z, scene);
+        createTree(x, z, visualDirector);
     }
 
     // Spawn rocks
     for (let i = 0; i < WORLD.ROCK_COUNT; i++) {
         const x = (Math.random() - 0.5) * spawnRange * 2;
         const z = (Math.random() - 0.5) * spawnRange * 2;
-        createRock(x, z, scene);
+        createRock(x, z, visualDirector);
     }
 
     // Spawn berry bushes
     for (let i = 0; i < WORLD.BERRY_BUSH_COUNT; i++) {
         const x = (Math.random() - 0.5) * spawnRange * 2;
         const z = (Math.random() - 0.5) * spawnRange * 2;
-        createBerryBush(x, z, scene);
+        createBerryBush(x, z, visualDirector);
     }
 
     console.log(`[World] Spawned ${WORLD.TREE_COUNT} trees, ${WORLD.ROCK_COUNT} rocks, ${WORLD.BERRY_BUSH_COUNT} berry bushes`);

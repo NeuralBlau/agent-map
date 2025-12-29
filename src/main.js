@@ -51,7 +51,8 @@ const engine = new Engine(document.getElementById('app'));
 const scene = engine.scene;
 const camera = engine.camera;
 
-const world = new World(scene);
+const world = new World(engine.visualDirector);
+engine.world = world;
 world.init();
 
 const ui = new UIManager();
@@ -304,7 +305,7 @@ function animate() {
         startHarvest,
         canCraft,
         startCraft,
-        createBuilding,
+        createBuilding: (type, x, z, bId) => createBuilding(type, x, z, engine.visualDirector, bId),
         consumeItem,
         findNearestResource: (type) => findNearestResource(type, agent.group.position, resourceNodes)
       });
@@ -373,7 +374,7 @@ function animate() {
   seeds.forEach(seed => updateSeedAnimation(seed, now));
 
   // Seed respawn check
-  checkSeedRespawn(scene, addLog);
+  checkSeedRespawn(engine.visualDirector, addLog);
 
   // Render
   engine.render();
@@ -463,8 +464,8 @@ window.game = {
 
     // 4. Spawn Fresh Agents
     resetUsedNames();
-    const p1 = createAgent(getRandomName(), COLORS.AGENT_PIONEER, new THREE.Vector3(2, 0, 2), scene);
-    const p2 = createAgent(getRandomName(), COLORS.AGENT_SETTLER, new THREE.Vector3(-2, 0, -2), scene);
+    const p1 = createAgent(getRandomName(), COLORS.AGENT_PIONEER, new THREE.Vector3(2, 0, 2), engine.visualDirector);
+    const p2 = createAgent(getRandomName(), COLORS.AGENT_SETTLER, new THREE.Vector3(-2, 0, -2), engine.visualDirector);
     world.addAgent(p1);
     world.addAgent(p2);
 
