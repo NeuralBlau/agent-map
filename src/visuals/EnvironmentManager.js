@@ -114,9 +114,49 @@ class EnvironmentManager {
         const groundGeometry = new THREE.PlaneGeometry(visualSize, visualSize);
         const groundMaterial = new THREE.MeshStandardMaterial({
             color: 0x1a2e1a, // Forest Green
-            roughness: 0.8,
-            metalness: 0.1
+            roughness: 0.9,
+            metalness: 0.05
         });
+
+        // Inject subtle ground noise
+        groundMaterial.onBeforeCompile = (shader) => {
+            shader.vertexShader = `
+                varying vec2 vUv;
+            ` + shader.vertexShader.replace(
+                '#include <uv_vertex>',
+                `
+                #include <uv_vertex>
+                vUv = uv;
+                `
+            );
+
+            shader.fragmentShader = `
+                varying vec2 vUv;
+                
+                // Simple hash-based noise
+                float hash(vec2 p) {
+                    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+                }
+
+                float noise(vec2 p) {
+                    vec2 i = floor(p);
+                    vec2 f = fract(p);
+                    float a = hash(i);
+                    float b = hash(i + vec2(1.0, 0.0));
+                    float c = hash(i + vec2(0.0, 1.0));
+                    float d = hash(i + vec2(1.0, 1.0));
+                    vec2 u = f * f * (3.0 - 2.0 * f);
+                    return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+                }
+            ` + shader.fragmentShader.replace(
+                '#include <color_fragment>',
+                `
+                #include <color_fragment>
+                float n = noise(vUv * 50.0);
+                diffuseColor.rgb *= 0.85 + n * 0.25; // Organic variation
+                `
+            );
+        };
         
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
         ground.rotation.x = -Math.PI / 2;
@@ -124,19 +164,25 @@ class EnvironmentManager {
         this.scene.add(ground);
         this.ground = ground;
 
-        // Subtle grid for the play area ONLY
-        const grid = new THREE.GridHelper(playSize, 20, 0x445544, 0x334433);
-        grid.position.y = 0.05;
-        grid.material.transparent = true;
-        grid.material.opacity = 0.4;
-        this.scene.add(grid);
-        this.grid = grid;
+        // 2. Stylized Play-Area Boundary
+        const ringGeo = new THREE.RingGeometry(playSize, playSize + 0.3, 128);
+        const ringMat = new THREE.MeshBasicMaterial({
+            color: 0xa0ff90,
+            transparent: true,
+            opacity: 0.2,
+            side: THREE.DoubleSide
+        });
+        const border = new THREE.Mesh(ringGeo, ringMat);
+        border.rotation.x = -Math.PI / 2;
+        border.position.y = 0.02;
+        this.scene.add(border);
+        this.boundary = border;
     }
 
     _setupFoliage() {
         const spawnRange = WORLD.SPAWN_RANGE || 25;
-        const grassCount = 1500;
-        const pebbleCount = 100;
+        const grassCount = 3500; // Boosted density
+        const pebbleCount = 250; // Boosted density
 
         // 1. Instanced Grass
         const grassGeo = new THREE.PlaneGeometry(0.1, 0.3);
@@ -212,6 +258,10 @@ class EnvironmentManager {
     update(delta, now) {
         if (this.foliageUniforms) {
             this.foliageUniforms.time.value = now * 0.001;
+        }
+
+        if (this.boundary) {
+            this.boundary.material.opacity = 0.1 + Math.sin(now * 0.002) * 0.1;
         }
     }
 

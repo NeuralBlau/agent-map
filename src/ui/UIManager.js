@@ -11,6 +11,9 @@ export class UIManager {
         this.brainLogsFull = document.getElementById('brain-logs-full');
         this.brainLogsInspector = document.getElementById('brain-logs');
         this.agentPanelsContainer = document.getElementById('agent-panels');
+        
+        // Cache for all per-agent UI elements
+        this.agentElements = new Map(); 
 
         this._initGlobalHandlers();
     }
@@ -27,6 +30,7 @@ export class UIManager {
     initAgentPanels(agents, onAgentSelect) {
         if (!this.agentPanelsContainer) return;
         this.agentPanelsContainer.innerHTML = '';
+        this.agentElements.clear();
 
         agents.forEach(agent => {
             const panel = document.createElement('div');
@@ -35,21 +39,36 @@ export class UIManager {
 
             const colorHex = '#' + new THREE.Color(agent.group.children[0].material.color).getHexString();
 
+            // Create structure via template
             panel.innerHTML = `
                 <div class="agent-panel-header">
-                    <div class="agent-color-dot" style="background: ${colorHex}"></div>
+                    <div class="agent-color-dot" style="background: ${colorHex}; color: ${colorHex}"></div>
                     <span class="agent-name">${agent.name}</span>
                     <span class="agent-state">${agent.state}</span>
                 </div>
                 <div class="agent-thought">Waiting...</div>
                 <div class="agent-stats-row">
-                    <div class="agent-stat"><span class="stat-icon">🍖</span><span class="stat-value" id="stat-hunger-${agent.name}">100</span></div>
-                    <div class="agent-stat"><span class="stat-icon">🔥</span><span class="stat-value" id="stat-warmth-${agent.name}">100</span></div>
-                    <div class="agent-stat"><span class="stat-icon">❤️</span><span class="stat-value" id="stat-health-${agent.name}">100</span></div>
-                    <div class="agent-stat"><span class="stat-icon">⚡</span><span class="stat-value" id="stat-energy-${agent.name}">100</span></div>
+                    <div class="agent-stat"><span class="stat-icon">🍖</span><span class="stat-value">100</span></div>
+                    <div class="agent-stat"><span class="stat-icon">🔥</span><span class="stat-value">100</span></div>
+                    <div class="agent-stat"><span class="stat-icon">❤️</span><span class="stat-value">100</span></div>
+                    <div class="agent-stat"><span class="stat-icon">⚡</span><span class="stat-value">100</span></div>
                 </div>
             `;
             this.agentPanelsContainer.appendChild(panel);
+
+            // Cache all dynamic parts
+            const stats = panel.querySelectorAll('.stat-value');
+            this.agentElements.set(agent.name, {
+                panel: panel,
+                state: panel.querySelector('.agent-state'),
+                thought: panel.querySelector('.agent-thought'),
+                stats: {
+                    hunger: stats[0],
+                    warmth: stats[1],
+                    health: stats[2],
+                    energy: stats[3]
+                }
+            });
 
             panel.addEventListener('click', () => {
                 this.selectAgent(agent, onAgentSelect);
@@ -61,8 +80,8 @@ export class UIManager {
      * Handle agent selection
      */
     selectAgent(agent, callback) {
-        const panels = document.querySelectorAll('.agent-panel');
-        panels.forEach(p => p.classList.remove('selected'));
+        // Clear previous selections
+        this.agentElements.forEach(els => els.panel.classList.remove('selected'));
 
         if (this.selectedAgent === agent) {
             this.selectedAgent.isSelected = false;
@@ -74,8 +93,8 @@ export class UIManager {
             this.selectedAgent = agent;
             this.selectedAgent.isSelected = true;
 
-            const panel = document.getElementById(`panel-${agent.name}`);
-            if (panel) panel.classList.add('selected');
+            const els = this.agentElements.get(agent.name);
+            if (els) els.panel.classList.add('selected');
 
             this.showInspectorPanel(agent);
         }
@@ -87,25 +106,28 @@ export class UIManager {
      * Update HUD panel for an agent
      */
     updateAgentHUD(agent, thought = null) {
-        const panel = document.getElementById(`panel-${agent.name}`);
-        if (!panel) return;
+        const els = this.agentElements.get(agent.name);
+        if (!els) return;
 
-        const stateEl = panel.querySelector('.agent-state');
-        if (stateEl) stateEl.textContent = agent.state;
+        // Efficient text updates
+        if (els.state.textContent !== agent.state) {
+            els.state.textContent = agent.state;
+        }
 
         if (thought) {
-            const thoughtEl = panel.querySelector('.agent-thought');
-            if (thoughtEl) {
-                thoughtEl.textContent = `"${thought.substring(0, 80)}${thought.length > 80 ? '...' : ''}"`;
+            const formatted = `"${thought.substring(0, 80)}${thought.length > 80 ? '...' : ''}"`;
+            if (els.thought.textContent !== formatted) {
+                els.thought.textContent = formatted;
             }
             updateThoughtBubble(agent, thought);
         }
 
-        const stats = ['hunger', 'warmth', 'health', 'energy'];
-        stats.forEach(stat => {
-            const el = document.getElementById(`stat-${stat}-${agent.name}`);
-            if (el) {
-                const value = Math.round(agent.stats[stat]);
+        const statKeys = ['hunger', 'warmth', 'health', 'energy'];
+        statKeys.forEach(key => {
+            const el = els.stats[key];
+            const value = Math.round(agent.stats[key]);
+            
+            if (el.textContent !== value.toString()) {
                 el.textContent = value;
                 el.className = value < 20 ? 'stat-value critical' : 'stat-value';
             }
@@ -136,40 +158,55 @@ export class UIManager {
     /**
      * Inspector Panel Logic
      */
+    /**
+     * Inspector Panel Logic
+     */
     showInspectorPanel(agent) {
         if (!this.brainLogsInspector) return;
 
+        // Build structure once
         this.brainLogsInspector.innerHTML = `
-            <div class="inspector-header">
+            <div class="inspector-header glass-panel">
                 <span class="inspector-title">📍 ${agent.name}</span>
                 <button id="inspector-close-btn" class="inspector-close">✕</button>
             </div>
             
             <div class="layer-section strategic">
-                <div class="layer-header">🎯 STRATEGIC <span class="layer-time" id="strategic-time"></span></div>
-                <div class="layer-content" id="strategic-content">Loading...</div>
+                <div class="layer-header">🎯 STRATEGIC <span class="layer-time" id="inspector-s-time"></span></div>
+                <div id="inspector-s-content" class="layer-content"></div>
             </div>
             
             <div class="layer-section tactical">
-                <div class="layer-header">📋 TACTICAL <span class="layer-time" id="tactical-time"></span></div>
-                <div class="layer-content" id="tactical-content">Loading...</div>
+                <div class="layer-header">📋 TACTICAL <span class="layer-time" id="inspector-t-time"></span></div>
+                <div id="inspector-t-content" class="layer-content"></div>
             </div>
             
             <div class="layer-section immediate">
                 <div class="layer-header">⚡ IMMEDIATE</div>
-                <div class="layer-content" id="immediate-content">Loading...</div>
+                <div id="inspector-i-content" class="layer-content"></div>
             </div>
             
             <div class="layer-section inventory">
                 <div class="layer-header">🎒 INVENTORY</div>
-                <div class="layer-content" id="inventory-content">Loading...</div>
+                <div id="inspector-inv-content" class="layer-content"></div>
             </div>
             
             <div class="layer-section history">
                 <div class="layer-header">📜 AGENT LOG</div>
-                <div class="layer-content scrollable" id="history-content">Loading...</div>
+                <div id="inspector-history-content" class="layer-content scrollable"></div>
             </div>
         `;
+
+        // Cache inspector elements
+        this.inspectorEls = {
+            sTime: document.getElementById('inspector-s-time'),
+            sContent: document.getElementById('inspector-s-content'),
+            tTime: document.getElementById('inspector-t-time'),
+            tContent: document.getElementById('inspector-t-content'),
+            iContent: document.getElementById('inspector-i-content'),
+            invContent: document.getElementById('inspector-inv-content'),
+            historyContent: document.getElementById('inspector-history-content')
+        };
 
         document.getElementById('inspector-close-btn').addEventListener('click', () => {
             this.selectAgent(agent);
@@ -181,50 +218,47 @@ export class UIManager {
     hideInspectorPanel() {
         if (this.brainLogsInspector) {
             this.brainLogsInspector.innerHTML = '<div class="log-entry">Click an agent to inspect their LLM layers</div>';
+            this.inspectorEls = null;
         }
     }
 
     updateInspectorPanel(agent) {
-        if (!this.selectedAgent || this.selectedAgent !== agent) return;
+        if (!this.selectedAgent || this.selectedAgent !== agent || !this.inspectorEls) return;
+
+        const { sTime, sContent, tTime, tContent, iContent, invContent, historyContent } = this.inspectorEls;
 
         // Strategic layer
-        const strategicEl = document.getElementById('strategic-content');
-        if (strategicEl && agent.layers.strategic) {
+        if (agent.layers.strategic) {
             const s = agent.layers.strategic;
-            const timeAgo = s.updatedAt ? Math.round((Date.now() - s.updatedAt) / 1000) + 's ago' : '--';
-            const timeEl = document.getElementById('strategic-time');
-            if (timeEl) timeEl.textContent = timeAgo;
-
-            strategicEl.innerHTML = `
-                <div class="goal-line"><strong>Goal:</strong> ${s.goal || 'None'}</div>
-                <div class="priority-line"><strong>Priority:</strong> ${s.priority || '--'}</div>
-                <div class="reasoning-line">"${s.reasoning || 'No reasoning yet'}"</div>
-            `;
+            if (sTime) sTime.textContent = s.updatedAt ? Math.round((Date.now() - s.updatedAt) / 1000) + 's ago' : '--';
+            if (sContent) {
+                sContent.innerHTML = `
+                    <div class="goal-line"><strong>Goal:</strong> ${s.goal || 'None'}</div>
+                    <div class="priority-line"><strong>Priority:</strong> ${s.priority || '--'}</div>
+                    <div class="reasoning-line">"${s.reasoning || 'No reasoning yet'}"</div>
+                `;
+            }
         }
 
         // Tactical layer
-        const tacticalEl = document.getElementById('tactical-content');
-        if (tacticalEl && agent.layers.tactical) {
+        if (agent.layers.tactical) {
             const t = agent.layers.tactical;
-            const timeAgo = t.updatedAt ? Math.round((Date.now() - t.updatedAt) / 1000) + 's ago' : '--';
-            const timeEl = document.getElementById('tactical-time');
-            if (timeEl) timeEl.textContent = timeAgo;
-
-            const planHTML = (t.plan || []).map((step, i) =>
-                `<div class="plan-step ${i === t.currentStep ? 'current' : ''}">${i + 1}. ${step}</div>`
-            ).join('') || 'No plan';
-
-            tacticalEl.innerHTML = `
-                <div class="plan-list">${planHTML}</div>
-                <div class="thought-line">"${t.thought || ''}"</div>
-            `;
+            if (tTime) tTime.textContent = t.updatedAt ? Math.round((Date.now() - t.updatedAt) / 1000) + 's ago' : '--';
+            if (tContent) {
+                const planHTML = (t.plan || []).map((step, i) =>
+                    `<div class="plan-step ${i === t.currentStep ? 'current' : ''}">${i + 1}. ${step}</div>`
+                ).join('') || 'No plan';
+                tContent.innerHTML = `
+                    <div class="plan-list">${planHTML}</div>
+                    <div class="thought-line">"${t.thought || ''}"</div>
+                `;
+            }
         }
 
         // Immediate layer
-        const immediateEl = document.getElementById('immediate-content');
-        if (immediateEl && agent.layers.immediate) {
+        if (iContent && agent.layers.immediate) {
             const i = agent.layers.immediate;
-            immediateEl.innerHTML = `
+            iContent.innerHTML = `
                 <div><strong>Action:</strong> ${i.action}</div>
                 <div><strong>Target:</strong> ${i.target || 'None'}</div>
                 <div><strong>State:</strong> ${agent.state}</div>
@@ -232,19 +266,16 @@ export class UIManager {
         }
 
         // Inventory
-        const inventoryEl = document.getElementById('inventory-content');
-        if (inventoryEl && agent.inventory) {
-            const items = Object.entries(agent.inventory)
+        if (invContent && agent.inventory) {
+            invContent.textContent = Object.entries(agent.inventory)
                 .filter(([k, v]) => v > 0)
                 .map(([k, v]) => `${k}: ${v}`)
                 .join(' | ') || 'Empty';
-            inventoryEl.textContent = items;
         }
 
         // Log history
-        const historyEl = document.getElementById('history-content');
-        if (historyEl && agent.logHistory) {
-            historyEl.innerHTML = agent.logHistory
+        if (historyContent && agent.logHistory) {
+            historyContent.innerHTML = agent.logHistory
                 .slice(0, 10)
                 .map(log => `<div class="log-entry">[${log.time}] ${log.text}</div>`)
                 .join('') || 'No history';
