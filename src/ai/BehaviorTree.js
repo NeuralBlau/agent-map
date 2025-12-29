@@ -305,6 +305,7 @@ export class HarvestNode extends BTNode {
 
         if (success) {
             this.harvesting = true;
+            context.visualDirector?.notify('AGENT_ACTION_START', { target: resource.group, actionType: 'HARVESTING' });
             this.status = NodeStatus.RUNNING;
             return NodeStatus.RUNNING;
         }
@@ -362,6 +363,7 @@ export class BuildNode extends BTNode {
         });
 
         this.building = true;
+        context.visualDirector?.notify('AGENT_ACTION_START', { target: agent.group, actionType: 'BUILDING' });
         addLog(`${agent.name} started building ${this.recipeId}...`, 'system');
         this.status = NodeStatus.RUNNING;
         return NodeStatus.RUNNING;
@@ -426,6 +428,7 @@ export class EatNode extends BTNode {
         const success = consumeItem(agent, foodType);
         if (success) {
             addLog(`${agent.name} ate ${foodType}`, 'system');
+            context.visualDirector?.notify('AGENT_ACTION_START', { target: agent.group, actionType: 'EATING' });
             this.status = NodeStatus.SUCCESS;
             return NodeStatus.SUCCESS;
         }

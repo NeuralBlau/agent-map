@@ -298,6 +298,7 @@ function animate() {
       const btContext = createBTContext({
         scene,
         addLog: (msg, type) => Events.emit('log', msg, type),
+        visualDirector: engine.visualDirector,
         resourceNodes,
         seeds,
         findResourceById,

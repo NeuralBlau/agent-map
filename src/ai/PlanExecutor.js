@@ -277,12 +277,14 @@ export function createBTContext(options) {
         startCraft,
         createBuilding,
         consumeItem,
-        findNearestResource // Extract passed helper
+        findNearestResource,
+        visualDirector
     } = options;
 
     return {
         scene,
         addLog,
+        visualDirector,
 
         // Find a target by ID (resource, seed, or position)
         findTarget(targetId) {

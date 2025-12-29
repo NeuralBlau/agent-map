@@ -2,6 +2,7 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass';
+import { SAOPass } from 'three/examples/jsm/postprocessing/SAOPass';
 import * as THREE from 'three';
 
 /**
@@ -23,10 +24,22 @@ class VFXManager {
     init() {
         this.composer = new EffectComposer(this.renderer);
         
+        // Ensure the renderer is set for high-fidelity output
+        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        this.renderer.toneMappingExposure = 1.0;
+
         const renderPass = new RenderPass(this.scene, this.camera);
         this.composer.addPass(renderPass);
 
-        // Standard Bloom setup (based on earlier "Vibrant Pop" settings)
+        // 1. Ambient Occlusion (Grounding objects)
+        const saoPass = new SAOPass(this.scene, this.camera);
+        saoPass.params.saoIntensity = 0.05;
+        saoPass.params.saoScale = 10;
+        saoPass.params.saoKernelRadius = 25;
+        saoPass.params.saoBlur = true;
+        this.composer.addPass(saoPass);
+
+        // 2. Standard Bloom setup
         this.bloomPass = new UnrealBloomPass(
             new THREE.Vector2(window.innerWidth, window.innerHeight),
             0.3, // Strength

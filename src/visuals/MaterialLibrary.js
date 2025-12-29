@@ -28,27 +28,43 @@ class MaterialLibrary {
     }
 
     _createStandardMaterials() {
-        // Agent Body
-        this.materials.set('agent_standard', (color) => new THREE.MeshStandardMaterial({
+        // Create a reusable noise texture for "clay" texture
+        const size = 64;
+        const data = new Uint8Array(size * size * 4); // 4 components for RGBA
+        for (let i = 0; i < size * size * 4; i++) {
+            data[i] = 127 + Math.random() * 40; // Subtle noise
+        }
+        const noiseTexture = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
+        noiseTexture.wrapS = noiseTexture.wrapT = THREE.RepeatWrapping;
+        noiseTexture.repeat.set(2, 2);
+        noiseTexture.needsUpdate = true;
+
+        // Custom "Soft Stylized" Material Template
+        const createSoftMaterial = (color, roughness = 0.8) => new THREE.MeshStandardMaterial({
             color: color,
-            emissive: color,
-            emissiveIntensity: 0.2,
-            roughness: 0.5,
-            metalness: 0.1
-        }));
+            roughness: roughness,
+            metalness: 0.1,
+            flatShading: false, // Smooth but with noise
+            bumpMap: noiseTexture,
+            bumpScale: 0.02,
+        });
+
+        // Agent Body
+        this.materials.set('agent_standard', (color) => {
+            const mat = createSoftMaterial(color, 0.5);
+            mat.emissive = new THREE.Color(color);
+            mat.emissiveIntensity = 0.2;
+            return mat;
+        });
 
         // UI / Face
         this.materials.set('ui_black', new THREE.MeshBasicMaterial({ color: 0x000000 }));
         
         // Resource Defaults
-        this.materials.set('tree_trunk', new THREE.MeshStandardMaterial({ color: 0x3d2b1f, roughness: 0.9 }));
-        this.materials.set('tree_leaves', new THREE.MeshStandardMaterial({ color: 0x22cc44, flatShading: true }));
-        this.materials.set('rock_standard', new THREE.MeshStandardMaterial({
-            color: 0x666677,
-            roughness: 0.8,
-            metalness: 0.2,
-            flatShading: true
-        }));
+        this.materials.set('tree_trunk', createSoftMaterial(0x3d2b1f, 0.9));
+        this.materials.set('tree_leaves', createSoftMaterial(0x22cc44, 0.7));
+        this.materials.set('rock_standard', createSoftMaterial(0x666677, 0.8));
+        this.materials.set('mountain_standard', createSoftMaterial(0x2a3e20, 0.95)); // Dark forest mountain
     }
 
     /**

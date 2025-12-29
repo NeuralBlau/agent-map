@@ -15,7 +15,7 @@ export class Engine {
         this.scene.background = new THREE.Color(COLORS.BACKGROUND);
 
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        this.camera.position.set(15, 15, 15);
+        this.camera.position.set(20, 20, 20);
 
         this.renderer = new THREE.WebGLRenderer({ antialias: true });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -30,10 +30,14 @@ export class Engine {
         this.controls = new OrbitControls(this.camera, this.renderer.domElement);
         this.controls.enableDamping = true;
         this.controls.dampingFactor = 0.05;
+        this.controls.maxPolarAngle = Math.PI / 2.1; 
+        this.controls.maxDistance = 80; // Back to cohesive range
+        this.controls.minDistance = 5;
 
         // NEW: Centralized Visual System
         this.visualDirector = new VisualDirector(this);
 
+        this.keys = {};
         this._initEvents();
     }
 
@@ -50,12 +54,30 @@ export class Engine {
                 this.visualDirector.vfx.handleResize(width, height);
             }
         });
+
+        window.addEventListener('keydown', (e) => this.keys[e.key.toLowerCase()] = true);
+        window.addEventListener('keyup', (e) => this.keys[e.key.toLowerCase()] = false);
     }
 
     render() {
         const delta = 0.016; // Approx 60fps
         const now = Date.now();
         
+        // WASD Panning
+        const panSpeed = 0.5;
+        const forward = new THREE.Vector3();
+        this.camera.getWorldDirection(forward);
+        forward.y = 0;
+        forward.normalize();
+        
+        const right = new THREE.Vector3();
+        right.crossVectors(forward, new THREE.Vector3(0, 1, 0));
+
+        if (this.keys['w']) this.controls.target.addScaledVector(forward, panSpeed);
+        if (this.keys['s']) this.controls.target.addScaledVector(forward, -panSpeed);
+        if (this.keys['a']) this.controls.target.addScaledVector(right, -panSpeed);
+        if (this.keys['d']) this.controls.target.addScaledVector(right, panSpeed);
+
         this.controls.update();
         
         // Update Visual Systems
