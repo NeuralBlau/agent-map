@@ -2,12 +2,12 @@
 // Encapsulates agent state, rendering, and behavior
 
 import * as THREE from 'three';
-import { AGENT, COLORS, SEED as SEED_CONFIG } from '../config.js';
+import { AGENT, COLORS } from '../config.js';
 import { createInventory, serializeInventory } from '../systems/Inventory.js';
 import { RECIPES } from '../systems/Crafting.js';
 
-const SEED_EAT_SHRINK = SEED_CONFIG.EAT_SHRINK_RATE;
-const SEED_EAT_THRESHOLD = SEED_CONFIG.EAT_THRESHOLD;
+// 
+// 
 
 export function createAgent(name, colorIndex, startPos, visualDirector) {
     const scene = visualDirector.scene;
@@ -57,7 +57,6 @@ export function createAgent(name, colorIndex, startPos, visualDirector) {
 
         // Legacy compatibility
         hunger: AGENT.INITIAL_STATS.hunger,
-        eatingSeed: null,
 
         // Timing
         lastActionTime: Date.now(),
@@ -329,22 +328,10 @@ export function updateAgentIdle(agent, now) {
     }
 }
 
+/**
+ * updateAgentEating - NO OP (Seeds removed)
+ */
 export function updateAgentEating(agent) {
-    if (!agent.eatingSeed) return false;
-
-    const seed = agent.eatingSeed;
-    seed.scale.multiplyScalar(SEED_EAT_SHRINK);
-    seed.position.lerp(new THREE.Vector3(0, 0.5, 0), 0.1);
-
-    if (seed.scale.x < SEED_EAT_THRESHOLD) {
-        agent.group.remove(seed);
-        agent.eatingSeed = null;
-        // Eating seeds restores hunger
-        agent.stats.hunger = Math.min(100, agent.stats.hunger + 25);
-        agent.hunger = agent.stats.hunger;
-        console.log(`[Metabolism] ${agent.name} fully absorbed seed. Hunger: ${agent.stats.hunger.toFixed(0)}`);
-        return true;
-    }
     return false;
 }
 

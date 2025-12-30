@@ -63,15 +63,6 @@ class MaterialLibrary {
             return mat;
         });
 
-        // Seed Material - Now reactive
-        this.materials.set('seed_standard', () => {
-            const mat = new THREE.MeshStandardMaterial({ roughness: 0.2 });
-            mat.onBeforeCompile = (shader) => {
-                ShaderUtils.injectUniform(shader, 'uAccentA', 'vec3', themeManager.uniforms.uAccentA);
-                ShaderUtils.injectFragmentLogic(shader, '#include <color_fragment>', 'diffuseColor.rgb = uAccentA;');
-            };
-            return mat;
-        });
 
         // UI / Face
         this.materials.set('ui_black', new THREE.MeshBasicMaterial({ color: 0x000000 }));
@@ -183,12 +174,6 @@ class MaterialLibrary {
                 group.add(tent);
                 return group;
 
-            case 'seed':
-                const seed = new THREE.Mesh(new THREE.IcosahedronGeometry(0.3, 0), this.materials.get('seed_standard')());
-                seed.position.y = 0.3;
-                seed.castShadow = true;
-                group.add(seed);
-                return group;
 
             default:
                 return group;

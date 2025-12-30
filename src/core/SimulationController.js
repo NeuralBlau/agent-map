@@ -5,13 +5,11 @@ import { serializeAgent } from '../ai/AgentPerception.js';
 import { serializeBuildings, createBuilding } from '../entities/Building.js';
 import { buildTreeFromPlan, createBTContext } from '../ai/PlanExecutor.js';
 import { NodeStatus } from '../ai/BehaviorTree.js';
-import { 
-  updateAgentMovement, 
+import { updateAgentMovement, 
   updateAgentStats, 
   updateAgentIdle, 
   updateAgentEating 
 } from '../entities/Agent.js';
-import { updateSeedAnimation, checkSeedRespawn, findSeedById } from '../entities/Seed.js';
 import { applyBuildingEffects } from '../entities/Building.js';
 import { findResourceById, startHarvest, findNearestResource } from '../entities/ResourceNode.js';
 import { consumeItem } from '../entities/Agent.js';
@@ -49,7 +47,6 @@ export class SimulationController {
       world: this.world,
       agents: this.world.agents,
       resourceNodes: this.world.resourceNodes,
-      seeds: this.world.seeds,
       buildings: this.world.buildings,
 
       // Operations
@@ -118,12 +115,12 @@ export class SimulationController {
         } else {
           clearInterval(agent.strategicInterval);
         }
-      }, 30000 + Math.random() * 5000);
+      }, 15000 + Math.random() * 5000); // Reduced from 30s to 15s
     }, initialDelay);
   }
 
   async strategicLoop(agent) {
-    if (agent.isDead || !this.isSimulationRunning) return;
+    if (agent.isDead || !this.isSimulationRunning || agent.isThinking) return;
 
     // BT Lock: Don't interrupt active plans unless they've timed out
     if (agent.behaviorTree && !agent.isThinking) {
@@ -138,15 +135,15 @@ export class SimulationController {
     Events.emit('agentStatus', agent);
 
     try {
+      const buildings = serializeBuildings(agent.group.position);
       const state = serializeAgent(
         agent, 
         this.world.agents, 
-        this.world.seeds, 
         this.engine.scene, 
-        null, 
-        this.world.resourceNodes
+        this.currentWhisper, 
+        this.world.resourceNodes,
+        buildings
       );
-      state.buildings = serializeBuildings(agent.group.position);
 
       const res = await fetch(API.STRATEGIC_ENDPOINT, {
         method: 'POST',
@@ -166,8 +163,9 @@ export class SimulationController {
 
       this.addAgentLog(agent, `[STRATEGIC] Goal: ${result.goal} (${result.priority})`);
 
+      // Await the tactical planning within the same thinking lock
       if (previousGoal !== result.goal || !agent.behaviorTree) {
-        this.tacticalLoop(agent);
+        await this.tacticalLoop(agent, true); // true = force bypass isThinking
       }
 
       this.ui.updateInspectorPanel(agent);
@@ -179,19 +177,25 @@ export class SimulationController {
     }
   }
 
-  async tacticalLoop(agent) {
+  async tacticalLoop(agent, force = false) {
     if (agent.isDead || !this.isSimulationRunning) return;
+    if (agent.isThinking && !force) return;
+
+    if (!force) {
+      agent.isThinking = true;
+      Events.emit('agentStatus', agent);
+    }
 
     try {
+      const buildings = serializeBuildings(agent.group.position);
       const state = serializeAgent(
         agent, 
         this.world.agents, 
-        this.world.seeds, 
         this.engine.scene, 
-        null, 
-        this.world.resourceNodes
+        this.currentWhisper, 
+        this.world.resourceNodes,
+        buildings
       );
-      state.buildings = serializeBuildings(agent.group.position);
 
       const res = await fetch(API.TACTICAL_ENDPOINT, {
         method: 'POST',
@@ -224,8 +228,10 @@ export class SimulationController {
       this.addAgentLog(agent, `[TACTICAL] Plan: ${result.plan?.length || 0} steps`);
       this.ui.updateInspectorPanel(agent);
 
-    } catch (e) {
-      console.error(`[Simulation] Tactical Error for ${agent.name}:`, e);
+    } finally {
+      if (!force) {
+        agent.isThinking = false;
+      }
     }
   }
 
@@ -236,6 +242,14 @@ export class SimulationController {
       this.currentWhisper = msg;
       Events.emit('log', `God whispers: "${msg}"`, 'system');
       input.value = '';
+      
+      // Immediate reaction
+      this.world.agents.forEach(agent => {
+        if (!agent.isDead && !agent.isThinking) {
+          this.strategicLoop(agent);
+        }
+      });
+
       setTimeout(() => {
         if (this.currentWhisper === msg) this.currentWhisper = null;
       }, API.WHISPER_TIMEOUT);
@@ -281,12 +295,10 @@ export class SimulationController {
           scene: this.engine.scene,
           agent,
           agents: this.world.agents,
-          seeds: this.world.seeds,
           resourceNodes: this.world.resourceNodes,
           addLog: (m, t) => Events.emit('log', m, t),
           addAgentLog: (a, t) => this.addAgentLog(a, t),
           findResourceById,
-          findSeedById: (id) => findSeedById(id, this.engine.scene),
           startHarvest,
           canCraft,
           startCraft,
@@ -315,8 +327,13 @@ export class SimulationController {
           agent.behaviorTree = null;
           this.tacticalLoop(agent);
         }
-      } else if (reachedTarget && !agent.behaviorTree && !agent.isThinking) {
-        this.strategicLoop(agent);
+      } else if (!agent.behaviorTree && !agent.isThinking) {
+        // Proactive Thinking Debounce - increased to 8s to prevent hammering
+        const timeSinceLastRequest = Date.now() - (agent.lastTacticalRequestTime || 0);
+        if (timeSinceLastRequest > 8000) {
+          agent.lastTacticalRequestTime = Date.now();
+          this.strategicLoop(agent);
+        }
       }
 
       updateAgentIdle(agent, now);
@@ -327,9 +344,7 @@ export class SimulationController {
 
     // 2. World Updates
     applyBuildingEffects(this.world.agents, delta);
-    this.world.seeds.forEach(seed => updateSeedAnimation(seed, now));
-    checkSeedRespawn(this.engine.visualDirector, (m, t) => Events.emit('log', m, t));
-
+    
     // 3. Render
     this.engine.render();
   }

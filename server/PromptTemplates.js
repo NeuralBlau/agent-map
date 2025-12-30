@@ -136,7 +136,6 @@ export function getDecidePrompt(agentName, state, worldRules) {
     const inventory = agent.inventory || {};
     const resources = state.resources || [];
     const buildings = state.buildings || [];
-    const seeds = state.seeds || state.objects || [];
     const others = state.others || [];
     const position = agent.position || [0, 0, 0];
 
@@ -162,8 +161,6 @@ NEARBY RESOURCES:
 - Berry bushes: ${nearbyBerries.length > 0 ? nearbyBerries.map(b => `${b.id}(${b.remaining} left, dist:${b.dist})`).join(', ') : 'none visible'}
 
 BUILDINGS: ${buildings.length > 0 ? buildings.map(b => `${b.type}(dist:${b.distance})`).join(', ') : 'none built yet'}
-
-SEEDS: ${seeds.length > 0 ? seeds.map(s => `${s.id}(dist:${s.dist})`).join(', ') : 'none visible'}
 
 OTHER SURVIVORS: ${others.length > 0 ? others.map(o => `${o.name}(dist:${o.distance})`).join(', ') : 'alone'}
 

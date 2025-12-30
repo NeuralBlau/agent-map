@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { spawnWorldResources, resourceNodes, resetResourceRegistry } from '../entities/ResourceNode.js';
-import { createSeed, seeds } from '../entities/Seed.js';
 import { createAgent } from '../entities/Agent.js';
 import { buildings, resetBuildingRegistry } from '../entities/Building.js';
 import { COLORS } from '../config.js';
@@ -14,7 +13,6 @@ export class World {
         this.visualDirector = visualDirector;
         this.scene = visualDirector.scene;
         this.agents = [];
-        this.seeds = seeds;
         this.resourceNodes = resourceNodes;
         this.buildings = buildings;
         this.currentWhisper = null;
@@ -23,12 +21,6 @@ export class World {
     init() {
         // Spawn harvestable resources
         spawnWorldResources(this.visualDirector);
-
-        // Create initial seeds
-        createSeed('seed_01', 8, 8, this.visualDirector);
-        createSeed('seed_02', -10, 5, this.visualDirector);
-        createSeed('seed_03', 4, -12, this.visualDirector);
-        createSeed('seed_04', -5, -5, this.visualDirector);
 
         // Create agents
         resetUsedNames();
@@ -46,8 +38,7 @@ export class World {
         return {
             agents: this.agents,
             resourceNodes: resourceNodes,
-            buildings: buildings,
-            seeds: seeds
+            buildings: buildings
         };
     }
 
@@ -75,11 +66,7 @@ export class World {
         this.resourceNodes.forEach(n => this.scene.remove(n.group));
         resetResourceRegistry();
 
-        // 3. Remove seeds from scene and clear registry
-        this.seeds.forEach(s => this.scene.remove(s));
-        this.seeds.length = 0;
-
-        // 4. Remove buildings from scene and clear registry
+        // 3. Remove buildings from scene and clear registry
         this.buildings.forEach(b => this.scene.remove(b.group));
         resetBuildingRegistry();
 

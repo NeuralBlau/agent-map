@@ -5,7 +5,7 @@ import { serializeBuildings } from '../entities/Building.js';
 /**
  * AgentPerception - Handles serialization of agent state and world perception for LLM consumption
  */
-export function serializeAgent(agent, allAgents, seeds, scene, currentWhisper, resourceNodes = [], buildings = []) {
+export function serializeAgent(agent, allAgents, scene, currentWhisper, resourceNodes = [], buildings = []) {
     // v3 Pre-processor: Calculate Distances
     const findNearest = (type) => {
         const matching = resourceNodes.filter(r => r.type === type && r.remaining > 0);
@@ -139,14 +139,6 @@ export function serializeAgent(agent, allAgents, seeds, scene, currentWhisper, r
                 distance: agent.group.position.distanceTo(a.group.position).toFixed(1)
             })),
         resources: resources,
-        seeds: seeds
-            .filter(s => s.parent === scene)
-            .map(s => ({
-                id: s.userData.id,
-                type: 'seed',
-                position: [s.position.x.toFixed(1), 0, s.position.z.toFixed(1)],
-                dist: agent.group.position.distanceTo(s.position).toFixed(1)
-            })),
         buildings: buildings
     };
 

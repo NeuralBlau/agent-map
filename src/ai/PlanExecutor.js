@@ -133,14 +133,14 @@ function parseStep(stepDesc, index) {
  * Looks for patterns like "tree_7", "rock_3", etc.
  */
 function extractTargetId(stepDesc) {
-    // Match patterns like: tree_7, rock_3, berry_2, seed_01
-    const match = stepDesc.match(/(tree|rock|berry|seed|bush)_?\d+/i);
+    // Match patterns like: tree_7, rock_3, berry_2, bush_01
+    const match = stepDesc.match(/(tree|rock|berry|bush)_?\d+/i);
     if (match) {
         return match[0];
     }
 
     // Match patterns like: tree 7, rock 3
-    const spacedMatch = stepDesc.match(/(tree|rock|berry|bush|seed)\s+(\d+)/i);
+    const spacedMatch = stepDesc.match(/(tree|rock|berry|bush)\s+(\d+)/i);
     if (spacedMatch) {
         const type = spacedMatch[1].toLowerCase();
         const num = spacedMatch[2];
@@ -268,10 +268,7 @@ export function createBTContext(options) {
     const {
         scene,
         addLog,
-        resourceNodes,
-        seeds,
         findResourceById,
-        findSeedById,
         startHarvest,
         canCraft,
         startCraft,
@@ -292,12 +289,6 @@ export function createBTContext(options) {
             const resource = findResourceById(targetId);
             if (resource) {
                 return { position: resource.group.position, entity: resource };
-            }
-
-            // Try seeds
-            const seed = findSeedById(targetId, scene);
-            if (seed) {
-                return { position: seed.position, entity: seed };
             }
 
             return null;

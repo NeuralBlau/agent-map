@@ -65,7 +65,6 @@ app.post('/decide', async (req, res) => {
         const inventory = agent.inventory || {};
         const resources = state.resources || [];
         const buildings = state.buildings || [];
-        const seeds = state.seeds || state.objects || [];
         const others = state.others || [];
         const position = agent.position || [0, 0, 0];
 

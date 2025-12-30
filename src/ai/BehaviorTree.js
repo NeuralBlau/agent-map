@@ -396,7 +396,7 @@ export class EatNode extends BTNode {
             // If no food in inventory, check if we are standing near a bush (Telekinesis check)
             if (!foodType) {
                 const nearFood = edibles.find(item => {
-                   const target = findTarget(item); // Checks resources/seeds
+                   const target = findTarget(item); // Checks resources
                    if (target) {
                        const dist = agent.group.position.distanceTo(target.position);
                        return dist < 5;

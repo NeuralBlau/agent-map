@@ -90,15 +90,6 @@ export const RESOURCES = {
     }
 };
 
-export const SEED = {
-    MIN_COUNT: 3,
-    RESPAWN_CHANCE: 0.01,
-    FLOAT_AMPLITUDE: 0.1,
-    FLOAT_SPEED: 0.002,
-    ROTATION_SPEED: 0.01,
-    EAT_SHRINK_RATE: 0.9,
-    EAT_THRESHOLD: 0.05
-};
 
 import themeManager from './visuals/ThemeManager.js';
 
@@ -109,7 +100,6 @@ export const COLORS = {
     get GRID_SECONDARY() { return themeManager.get('surface'); },
     get AGENT_PIONEER() { return themeManager.get('accentA'); },
     get AGENT_SETTLER() { return themeManager.get('accentB'); },
-    get SEED() { return themeManager.get('accentA'); }, // Seed matches pioneer accent
     
     // Bar colors - Keeping these static or semantic?
     HUNGER_BAR: 'hsl(30, 100%, 60%)',
