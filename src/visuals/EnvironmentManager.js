@@ -1,21 +1,59 @@
 import * as THREE from 'three';
 import { WORLD, COLORS } from '../config.js';
+import themeManager from './ThemeManager.js';
+import { ShaderUtils } from './ShaderUtils.js';
 
 /**
- * EnvironmentManager - Manages lighting, terrain, and atmospheric decorators.
+ * EnvironmentManager - Handles lighting, ground, and atmosphere.
+ * Now fully reactive via ThemeManager.
  */
 class EnvironmentManager {
     constructor(scene) {
         this.scene = scene;
         this.lights = {};
-        this.init();
+        this._init();
+
+        // 🟢 Listen for theme changes
+        themeManager.onThemeChange(() => this.updateTheme());
     }
 
-    init() {
+    updateTheme() {
+        const theme = themeManager.themes[themeManager.activeTheme];
+        const isSocialPop = themeManager.activeTheme === 'SOCIAL_POP';
+        
+        // Update Fog
+        const fogDensity = isSocialPop ? 0.004 : (theme.isDark ? 0.003 : 0.005);
+        if (this.scene.fog) {
+            this.scene.fog.color.set(theme.atmosphere);
+            this.scene.fog.density = fogDensity;
+        } else {
+            this.scene.fog = new THREE.FogExp2(theme.atmosphere, fogDensity);
+        }
+
+        // Update Background (Sky) - Now strictly following the atmosphere token
+        this.scene.background = new THREE.Color(theme.atmosphere);
+
+        // Update Lights
+        if (this.lights.ambient) {
+            // Social Pop needs balanced ambient to keep punchy shadows
+            const ambientColor = isSocialPop ? 0xd0d8ff : (theme.isDark ? 0xb0b0ff : theme.atmosphere);
+            const ambientIntensity = isSocialPop ? 0.5 : (theme.isDark ? 0.5 : 0.8);
+            
+            this.lights.ambient.color.set(ambientColor);
+            this.lights.ambient.intensity = ambientIntensity;
+        }
+
+        if (this.lights.sun) {
+            this.lights.sun.intensity = isSocialPop ? 2.0 : (theme.isDark ? 1.8 : 1.8);
+            this.lights.sun.color.set(isSocialPop ? 0xffffff : (theme.isDark ? 0xd0d0ff : 0xffffee));
+        }
+    }
+
+    _init() {
+        this._setupMountains();
         this._setupLighting();
         this._setupGround();
         this._setupFoliage();
-        this._setupMountains();
     }
 
     _setupMountains() {
@@ -23,139 +61,88 @@ class EnvironmentManager {
         const mountainCount = 8;
         const mountains = new THREE.Group();
 
-        // 1. Geometry with vertex colors for gradient
-        // Moderate large scale
+        // 1. Geometry - Store height ratio for reactive shader
         const baseWidth = 50;
         const height = 90;
         const geo = new THREE.CylinderGeometry(0, baseWidth, height, 4, 1);
         
-        // Add vertex colors (Top = peak color, Bottom = dark to blend with ground)
-        const colors = [];
-        const topColor = new THREE.Color(0x3a4f30); 
-        const bottomColor = new THREE.Color(0x0c120c); // Very dark to blend with the rim
-        
         const position = geo.attributes.position;
+        const aHeightRatio = new Float32Array(position.count);
         for (let i = 0; i < position.count; i++) {
             const y = position.getY(i);
-            const t = (y + height / 2) / height; 
-            const color = bottomColor.clone().lerp(topColor, Math.pow(t, 2.0));
-            colors.push(color.r, color.g, color.b);
+            aHeightRatio[i] = (y + height / 2) / height; 
         }
-        geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+        geo.setAttribute('aHeightRatio', new THREE.BufferAttribute(aHeightRatio, 1));
 
         const mountainMat = new THREE.MeshStandardMaterial({
-            vertexColors: true,
             roughness: 0.9,
             metalness: 0.1,
             flatShading: true
         });
 
+        // 🟢 THEME INJECTION (ShaderUtils)
+        mountainMat.onBeforeCompile = (shader) => {
+            ShaderUtils.applyMountainGradients(shader);
+        };
+
         // 2. Overlapping Massifs
         for (let i = 0; i < mountainCount; i++) {
             const angle = (i / mountainCount) * Math.PI * 2;
-            
             const peaksPerMassif = 3;
             for (let p = 0; p < peaksPerMassif; p++) {
                 const mesh = new THREE.Mesh(geo, mountainMat);
-                
-                const clusterOffset = (Math.random() - 0.5) * 40;
                 const r = ringRadius + (Math.random() - 0.5) * 40;
-                const x = Math.cos(angle + (clusterOffset * 0.01)) * r;
-                const z = Math.sin(angle + (clusterOffset * 0.01)) * r;
-
-                mesh.position.set(x, height / 2 - 10, z);
+                mesh.position.set(Math.cos(angle)*r, height/2 - 10, Math.sin(angle)*r);
                 mesh.rotation.y = Math.random() * Math.PI;
-                mesh.scale.set(
-                    0.8 + Math.random() * 0.4,
-                    0.6 + Math.random() * 1.2,
-                    0.8 + Math.random() * 0.4
-                );
-
+                mesh.scale.set(0.8+Math.random()*0.4, 0.6+Math.random()*1.2, 0.8+Math.random()*0.4);
                 mountains.add(mesh);
             }
         }
-
         this.scene.add(mountains);
         this.mountains = mountains;
-
-        // Optimized Fog
-        this.scene.fog = new THREE.FogExp2(0x050a05, 0.005);
+        this.scene.fog = new THREE.FogExp2(themeManager.get('atmosphere'), 0.008);
     }
 
     _setupLighting() {
-        // Natural fill light - slightly blue/green
-        const ambientLight = new THREE.AmbientLight(0xddeeff, 0.8);
+        // Natural fill light - Driven by Theme
+        const ambientLight = new THREE.AmbientLight(themeManager.get('atmosphere'), 0.8);
         this.scene.add(ambientLight);
         this.lights.ambient = ambientLight;
 
-        // Main sunlight - warm
+        // Main sunlight
         const sun = new THREE.DirectionalLight(0xffffee, 1.8);
         sun.position.set(60, 100, 40); 
         sun.castShadow = true;
         
         // High quality shadows
-        sun.shadow.mapSize.width = 4096; // 4K shadows for clarity
+        sun.shadow.mapSize.width = 4096;
         sun.shadow.mapSize.height = 4096;
         sun.shadow.camera.near = 0.5;
         sun.shadow.camera.far = 500; 
-        sun.shadow.camera.left = -200;
-        sun.shadow.camera.right = 200;
-        sun.shadow.camera.top = 200;
-        sun.shadow.camera.bottom = -200;
         
         this.scene.add(sun);
         this.lights.sun = sun;
     }
 
     _setupGround() {
-        const visualSize = 400; // Manageable skirt
-        const playSize = WORLD.GROUND_SIZE || 100;
+        const visualSize = 400; 
+        const playSize = 100;
         
         const groundGeometry = new THREE.PlaneGeometry(visualSize, visualSize);
         const groundMaterial = new THREE.MeshStandardMaterial({
-            color: 0x1a2e1a, // Forest Green
             roughness: 0.9,
             metalness: 0.05
         });
 
-        // Inject subtle ground noise
+        // 🟢 THEME INJECTION (ShaderUtils)
         groundMaterial.onBeforeCompile = (shader) => {
-            shader.vertexShader = `
-                varying vec2 vUv;
-            ` + shader.vertexShader.replace(
-                '#include <uv_vertex>',
-                `
-                #include <uv_vertex>
-                vUv = uv;
-                `
-            );
-
-            shader.fragmentShader = `
-                varying vec2 vUv;
-                
-                // Simple hash-based noise
-                float hash(vec2 p) {
-                    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
-                }
-
-                float noise(vec2 p) {
-                    vec2 i = floor(p);
-                    vec2 f = fract(p);
-                    float a = hash(i);
-                    float b = hash(i + vec2(1.0, 0.0));
-                    float c = hash(i + vec2(0.0, 1.0));
-                    float d = hash(i + vec2(1.0, 1.0));
-                    vec2 u = f * f * (3.0 - 2.0 * f);
-                    return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
-                }
-            ` + shader.fragmentShader.replace(
-                '#include <color_fragment>',
-                `
-                #include <color_fragment>
-                float n = noise(vUv * 50.0);
-                diffuseColor.rgb *= 0.85 + n * 0.25; // Organic variation
-                `
-            );
+            ShaderUtils.injectUniform(shader, 'uSurfaceColor', 'vec3', themeManager.uniforms.uSurfaceColor);
+            
+            ShaderUtils.injectVertexLogic(shader, '#include <common>', 'varying vec2 vUv;');
+            ShaderUtils.injectVertexLogic(shader, '#include <uv_vertex>', 'vUv = uv;');
+            
+            ShaderUtils.injectFragmentLogic(shader, '#include <common>', 'varying vec2 vUv;');
+            ShaderUtils.applyGroundNoise(shader, 'uSurfaceColor');
         };
         
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
@@ -187,31 +174,18 @@ class EnvironmentManager {
         // 1. Instanced Grass
         const grassGeo = new THREE.PlaneGeometry(0.1, 0.3);
         const grassMat = new THREE.MeshStandardMaterial({
-            color: 0x44aa44,
             side: THREE.DoubleSide,
             alphaTest: 0.5
         });
 
-        // Inject wind shader logic
+        // 🟢 THEME INJECTION (ShaderUtils)
         grassMat.onBeforeCompile = (shader) => {
-            shader.uniforms.time = { value: 0 };
+            ShaderUtils.injectUniform(shader, 'time', 'float', themeManager.uniforms.uTime);
+            ShaderUtils.injectUniform(shader, 'uGrassColor', 'vec3', themeManager.uniforms.uGrassColor);
             this.foliageUniforms = shader.uniforms;
-            shader.vertexShader = `
-                uniform float time;
-            ` + shader.vertexShader.replace(
-                '#include <begin_vertex>',
-                `
-                #include <begin_vertex>
-                float windScale = 0.3;
-                float windSpeed = 2.0;
-                float wave = sin(time * windSpeed + position.x * 2.0 + position.z * 2.0) * windScale;
-                // Only move top vertices (y > 0)
-                if (position.y > 0.0) {
-                    transformed.x += wave;
-                    transformed.z += wave * 0.5;
-                }
-                `
-            );
+
+            ShaderUtils.applyWind(shader, 'time');
+            ShaderUtils.injectFragmentLogic(shader, '#include <color_fragment>', 'diffuseColor.rgb = uGrassColor;');
         };
 
         const grassMesh = new THREE.InstancedMesh(grassGeo, grassMat, grassCount);
@@ -263,24 +237,9 @@ class EnvironmentManager {
         if (this.boundary) {
             this.boundary.material.opacity = 0.1 + Math.sin(now * 0.002) * 0.1;
         }
-    }
-
-    setMood(mood, duration = 2.0) {
-        // Mood Configs: [lightIntensity, ambientColor, sunColor]
-        const profiles = {
-            'day': { sun: 1.2, ambient: 0.6, ambientColor: 0xddeeff },
-            'night': { sun: 0.1, ambient: 0.1, ambientColor: 0x111133 },
-            'warning': { sun: 1.5, ambient: 0.3, ambientColor: 0xff3300 }
-        };
-
-        const config = profiles[mood] || profiles.day;
         
-        // Basic instant shift for now
-        this.lights.ambient.color.setHex(config.ambientColor);
-        this.lights.ambient.intensity = config.ambient;
-        this.lights.sun.intensity = config.sun;
-        
-        console.log(`[Environment] Mood shifted to: ${mood}`);
+        // Push uTime to global uniforms
+        themeManager.uniforms.uTime.value = now * 0.001;
     }
 }
 

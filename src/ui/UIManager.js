@@ -37,12 +37,11 @@ export class UIManager {
             panel.className = 'agent-panel';
             panel.id = `panel-${agent.name}`;
 
-            const colorHex = '#' + new THREE.Color(agent.group.children[0].material.color).getHexString();
-
             // Create structure via template
+            const agentIndex = agents.indexOf(agent); // Fallback to index in array
             panel.innerHTML = `
                 <div class="agent-panel-header">
-                    <div class="agent-color-dot" style="background: ${colorHex}; color: ${colorHex}"></div>
+                    <div class="agent-color-dot agent-${agentIndex}"></div>
                     <span class="agent-name">${agent.name}</span>
                     <span class="agent-state">${agent.state}</span>
                 </div>

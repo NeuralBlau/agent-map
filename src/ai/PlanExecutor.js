@@ -63,7 +63,7 @@ function parseStep(stepDesc, index) {
     const lower = stepDesc.toLowerCase();
 
     // Pattern: "Move to [target]"
-    if (/\b(move to|go to|walk to|head to)\b/i.test(stepDesc)) {
+    if (/\b(move[ _]to|go[ _]to|walk[ _]to|head[ _]to)\b/i.test(stepDesc)) {
         const targetId = extractTargetId(stepDesc);
         if (targetId) {
             return new MoveToNode(targetId);

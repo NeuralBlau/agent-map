@@ -118,10 +118,11 @@ export function applyBuildingEffects(agents, delta = 0.016) {
 }
 
 /**
- * Get all buildings for serialization
+ * Reset the building registry
  */
-export function getBuildings() {
-    return buildings;
+export function resetBuildingRegistry() {
+    buildings.length = 0;
+    buildingIdCounter = 0;
 }
 
 /**

@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import EnvironmentManager from './EnvironmentManager.js';
 import VFXManager from './VFXManager.js';
 import { materials } from './MaterialLibrary.js';
@@ -13,7 +14,7 @@ class VisualDirector {
         
         // Core Visual Components
         this.environment = new EnvironmentManager(this.scene);
-        this.vfx = new VFXManager(this.engine);
+        this.vfx = new VFXManager(this.engine.renderer, this.engine.scene, this.engine.camera);
         this.animators = new Set();
         
         console.log('[VisualDirector] Initialized');

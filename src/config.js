@@ -100,27 +100,23 @@ export const SEED = {
     EAT_THRESHOLD: 0.05
 };
 
+import themeManager from './visuals/ThemeManager.js';
+
 export const COLORS = {
-    BACKGROUND: 0x0a0a0a,
-    GROUND: 0x1a1a1a,
-    GRID_PRIMARY: 0x444444,
-    GRID_SECONDARY: 0x222222,
-    LIGHT_AMBIENT: 0xffffff,
-    LIGHT_DIRECTIONAL: 0xa0ff90,
-    SEED: 0xffd700,
-    AGENT_PIONEER: 0xa0ff90,
-    AGENT_SETTLER: 0x90a0ff,
-    TREE_TRUNK: 0x4d2902,
-    TREE_LEAVES: 0x1a4d1a,
-    ROCK: 0x444444,
-    BERRY_BUSH: 0x8b0045,
-    BERRY: 0xff1493,
-    // Stat bar colors
-    HUNGER_BAR: 0xffa500,
-    WARMTH_BAR: 0x4169e1,
-    HEALTH_BAR: 0xff0000,
-    ENERGY_BAR: 0xffff00,
-    EYE: 0x000000
+    get BACKGROUND() { return themeManager.get('atmosphere'); },
+    get GROUND() { return themeManager.get('surface'); },
+    get GRID_PRIMARY() { return themeManager.get('surface'); },
+    get GRID_SECONDARY() { return themeManager.get('surface'); },
+    get AGENT_PIONEER() { return themeManager.get('accentA'); },
+    get AGENT_SETTLER() { return themeManager.get('accentB'); },
+    get SEED() { return themeManager.get('accentA'); }, // Seed matches pioneer accent
+    
+    // Bar colors - Keeping these static or semantic?
+    HUNGER_BAR: 'hsl(30, 100%, 60%)',
+    WARMTH_BAR: 'hsl(210, 100%, 65%)',
+    HEALTH_BAR: 'hsl(0, 100%, 65%)',
+    ENERGY_BAR: 'hsl(50, 100%, 60%)',
+    EYE: 'hsl(0, 0%, 20%)'
 };
 
 export const API = {

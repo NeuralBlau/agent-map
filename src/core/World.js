@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import { spawnWorldResources, resourceNodes } from '../entities/ResourceNode.js';
+import { spawnWorldResources, resourceNodes, resetResourceRegistry } from '../entities/ResourceNode.js';
 import { createSeed, seeds } from '../entities/Seed.js';
 import { createAgent } from '../entities/Agent.js';
-import { buildings } from '../entities/Building.js';
+import { buildings, resetBuildingRegistry } from '../entities/Building.js';
 import { COLORS } from '../config.js';
 import { getRandomName, resetUsedNames } from '../agent_names.js';
 
@@ -14,6 +14,9 @@ export class World {
         this.visualDirector = visualDirector;
         this.scene = visualDirector.scene;
         this.agents = [];
+        this.seeds = seeds;
+        this.resourceNodes = resourceNodes;
+        this.buildings = buildings;
         this.currentWhisper = null;
     }
 
@@ -30,8 +33,8 @@ export class World {
         // Create agents
         resetUsedNames();
         
-        const agentPioneer = createAgent(getRandomName(), COLORS.AGENT_PIONEER, new THREE.Vector3(2, 0, 2), this.visualDirector);
-        const agentSettler = createAgent(getRandomName(), COLORS.AGENT_SETTLER, new THREE.Vector3(-2, 0, -2), this.visualDirector);
+        const agentPioneer = createAgent(getRandomName(), 0, new THREE.Vector3(2, 0, 2), this.visualDirector);
+        const agentSettler = createAgent(getRandomName(), 1, new THREE.Vector3(-2, 0, -2), this.visualDirector);
 
         this.agents.push(agentPioneer);
         this.agents.push(agentSettler);
@@ -61,5 +64,26 @@ export class World {
 
     findAgentByName(name) {
         return this.agents.find(a => a.name === name);
+    }
+    
+    reset() {
+        // 1. Remove agents from scene
+        this.agents.forEach(a => this.scene.remove(a.group));
+        this.agents.length = 0;
+
+        // 2. Remove resources from scene and clear registry
+        this.resourceNodes.forEach(n => this.scene.remove(n.group));
+        resetResourceRegistry();
+
+        // 3. Remove seeds from scene and clear registry
+        this.seeds.forEach(s => this.scene.remove(s));
+        this.seeds.length = 0;
+
+        // 4. Remove buildings from scene and clear registry
+        this.buildings.forEach(b => this.scene.remove(b.group));
+        resetBuildingRegistry();
+
+        // 5. Re-init
+        this.init();
     }
 }

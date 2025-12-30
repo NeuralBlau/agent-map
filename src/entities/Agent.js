@@ -9,11 +9,11 @@ import { RECIPES } from '../systems/Crafting.js';
 const SEED_EAT_SHRINK = SEED_CONFIG.EAT_SHRINK_RATE;
 const SEED_EAT_THRESHOLD = SEED_CONFIG.EAT_THRESHOLD;
 
-export function createAgent(name, color, startPos, visualDirector) {
+export function createAgent(name, colorIndex, startPos, visualDirector) {
     const scene = visualDirector.scene;
     
-    // Get high-quality mesh from visual system
-    const group = visualDirector.getAsset('agent', { color });
+    // Get high-quality mesh from visual system via index
+    const group = visualDirector.getAsset('agent', { colorIndex });
     const { body, eyes, mouth } = group.userData;
 
     // Stat Bars (stacked vertically above agent)

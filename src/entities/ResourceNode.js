@@ -245,8 +245,9 @@ export function spawnWorldResources(visualDirector) {
 }
 
 /**
- * Get all resource nodes for serialization
+ * Reset the resource registry
  */
-export function getResourceNodes() {
-    return resourceNodes;
+export function resetResourceRegistry() {
+    resourceNodes.length = 0;
+    nodeIdCounter = 0;
 }
