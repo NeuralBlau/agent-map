@@ -42,18 +42,27 @@ export class UIManager {
     /**
      * Initialize HUD panels for each agent
      */
+    /**
+     * Initialize HUD panels for each agent
+     */
     initAgentPanels(agents, onAgentSelect) {
+        // Persist callback if provided, or use existing
+        if (onAgentSelect) {
+            this.agentSelectCallback = onAgentSelect;
+        }
+
         if (!this.agentPanelsContainer) return;
         this.agentPanelsContainer.innerHTML = '';
         this.agentElements.clear();
 
         agents.forEach(agent => {
             const panel = document.createElement('div');
+            // ... (rest of creation logic unchanged, assuming it's consistent)
             panel.className = 'agent-panel';
             panel.id = `panel-${agent.name}`;
 
             // Create structure via template
-            const agentIndex = agents.indexOf(agent); // Fallback to index in array
+            const agentIndex = agents.indexOf(agent); 
             panel.innerHTML = `
                 <div class="agent-panel-header">
                     <div class="agent-color-dot agent-${agentIndex}"></div>
@@ -87,7 +96,7 @@ export class UIManager {
             });
 
             panel.addEventListener('click', () => {
-                this.selectAgent(agent, onAgentSelect);
+                this.selectAgent(agent, this.agentSelectCallback);
             });
         });
     }

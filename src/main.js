@@ -20,7 +20,16 @@ world.init();
 
 // 3. UI Manager (DOM interaction)
 const ui = new UIManager();
-ui.initAgentPanels(world.agents);
+ui.initAgentPanels(world.agents, (agent) => {
+    // When an agent is selected (or deselected)
+    if (agent) {
+        engine.setFollowTarget(agent.group);
+        ui.addLog(`Camera locked on ${agent.name}`, 'system');
+    } else {
+        engine.setFollowTarget(null);
+        ui.addLog(`Camera unlocked`, 'system');
+    }
+});
 
 // 4. Simulation Controller (Logic & Loops)
 // This orchestrates the thinking cycles and entity updates

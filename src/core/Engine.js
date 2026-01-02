@@ -59,27 +59,57 @@ export class Engine {
         window.addEventListener('keyup', (e) => this.keys[e.key.toLowerCase()] = false);
     }
 
+    setFollowTarget(target) {
+        // Allow re-snapping if called again
+        
+        this.followedObject = target;
+        
+        if (target) {
+            // SNAP ZOOM: Move camera close to agent
+            const offset = new THREE.Vector3(10, 10, 10); // Close Isometric
+            this.camera.position.copy(target.position).add(offset);
+            this.controls.target.copy(target.position);
+            
+            // Store last known position
+            this.lastTargetPos = target.position.clone();
+            console.log(`[Camera] Locked on ${target.position.x.toFixed(2)}, ${target.position.z.toFixed(2)}`);
+        }
+    }
+
     render() {
         const delta = 0.016; // Approx 60fps
         const now = Date.now();
         
-        // WASD Panning
-        const panSpeed = 0.5;
-        const forward = new THREE.Vector3();
-        this.camera.getWorldDirection(forward);
-        forward.y = 0;
-        forward.normalize();
-        
-        const right = new THREE.Vector3();
-        right.crossVectors(forward, new THREE.Vector3(0, 1, 0));
+        if (!this.followedObject) {
+            // WASD Panning
+            const panSpeed = 0.5;
+            const forward = new THREE.Vector3();
+            this.camera.getWorldDirection(forward);
+            forward.y = 0;
+            forward.normalize();
+            
+            const right = new THREE.Vector3();
+            right.crossVectors(forward, new THREE.Vector3(0, 1, 0));
 
-        if (this.keys['w']) this.controls.target.addScaledVector(forward, panSpeed);
-        if (this.keys['s']) this.controls.target.addScaledVector(forward, -panSpeed);
-        if (this.keys['a']) this.controls.target.addScaledVector(right, -panSpeed);
-        if (this.keys['d']) this.controls.target.addScaledVector(right, panSpeed);
+            if (this.keys['w']) this.controls.target.addScaledVector(forward, panSpeed);
+            if (this.keys['s']) this.controls.target.addScaledVector(forward, -panSpeed);
+            if (this.keys['a']) this.controls.target.addScaledVector(right, -panSpeed);
+            if (this.keys['d']) this.controls.target.addScaledVector(right, panSpeed);
+        } else {
+            // FOLLOW MODE: Robust Offset Preservation
+            // 1. Calculate current offset from the *current* target (which is where OrbitControls thinks it is)
+            const offset = new THREE.Vector3().subVectors(this.camera.position, this.controls.target);
+            
+            // 2. Update controls target to the new agent position
+            const newTargetPos = this.followedObject.position;
+            this.controls.target.copy(newTargetPos);
+            
+            // 3. Move camera to maintain the exact same relative offset
+            this.camera.position.addVectors(newTargetPos, offset);
+        }
 
         this.controls.update();
-        
+
         // Update Visual Systems
         if (this.visualDirector) {
             this.visualDirector.update(delta, now);
