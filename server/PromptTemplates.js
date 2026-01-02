@@ -11,29 +11,61 @@ export function getStrategicPrompt(agentName, state, worldRules) {
     
     // Qualitative Stats Helper
     const describe = (val) => {
-        if (val > 80) return `safe (${val})`;
-        if (val > 40) return `WARN (${val})`;
-        if (val > 15) return `CRITICAL (<40)`;
-        return `DYING (<15)`;
+        if (val > 40) return `safe (${val})`;
+        if (val > 20) return `WARN (${val})`;
+        if (val > 5) return `CRITICAL (<20)`;
+        return `DYING (<5)`;
     };
 
-    const isCritical = stats.hunger < 15 || stats.warmth < 15 || stats.health < 40;
+    const describeRes = (type, val) => {
+        let needed = 20; // Shelter Wood
+        if (type === 'stone') needed = 10;
+        
+        if (val >= needed) return `HIGH (Sufficient > ${needed} -> STOP GATHERING)`;
+        if (val >= needed / 2) return `MEDIUM (${val})`;
+        if (val > 0) return `LOW (${val})`;
+        return `NONE (0)`;
+    };
+
+    const invStr = `Wood: ${describeRes('wood', inventory.wood || 0)}, Stone: ${describeRes('stone', inventory.stone || 0)}, Berries: ${inventory.berries || 0}`;
+
+    const isCritical = stats.hunger < 10 || stats.warmth < 10 || stats.health < 20;
     const emergencyDirective = isCritical ? 
         `\n!!! EMERGENCY PROTOCOL !!! VITAL SIGNS CRITICAL. IGNORE ALL BUILDING GOALS. YOU MUST GATHER FOOD OR WARM UP. IF YOU BUILD, YOU DIE.\n` : "";
 
     return `
 YOU ARE THE STRATEGIC MIND OF ${agentName}.
-Your goal is LONG-TERM PRESERVATION.
-${emergencyDirective}
-WORLD RULES & KNOWLEDGE:
-${worldRules}
 
----
-CURRENT STATE:
+${emergencyDirective}
+
+
+You control an agent in a video game and your task is to make long-term plans which allows your agent to survive long enough to eventually build a shelter.
+
+If your health points are empty, you lose; if you build a shelter, you win.
+So you have to balance going for the win and making sure you dont die in the process by identifiying the most important actions to take each time you are asked.
+
+HERE IS YOUR CURRENT STATE:
 - Stats: Hunger: ${describe(stats.hunger)}, Warmth: ${describe(stats.warmth)}, Health: ${describe(stats.health)}
-- Inventory: ${JSON.stringify(inventory)}
+- Inventory: ${invStr}
 - Nearby Campfires: ${nearbyCampfires.length} built nearby.
 - Last Failure: ${JSON.stringify(agent.lastFailure || "None")}
+
+THE FOLLOWING OPTIONS ARE AVAILABLE TO YOU. DECIDE WHAT YOU WANT TO DO NEXT:
+
+• Need to Restore Hunger: Collect & eat berries (Goal: GATHER_FOOD)
+• Need to Increase Warmth: Stand next to campfire (Goal: STAND_NEAR_CAMPFIRE) or Build one (Goal: BUILD_CAMPFIRE).
+• Need to Win game: Build a shelter (Goal: BUILD_SHELTER). Needs Stone & Wood.
+• Need Stone: Gather stone ONLY if Stone < 10 (Goal: GATHER_STONE).
+• Need Wood: Gather wood ONLY if Wood < 20 (Goal: GATHER_WOOD).
+
+IMPORTANT RULES:
+1. Gathering WOOD does NOT help with Hunger.
+2. Campfires do NOT produce food.
+3. IF YOU HAVE ENOUGH WOOD (>20), DO NOT GATHER MORE WOOD. GATHER STONE OR BUILD.
+4. If you are Hungry (WARN/CRITICAL), you MUST choose GATHER_FOOD.
+
+---
+
 
 FEASIBILITY CALCULATIONS (Pre-calculated):
 ${JSON.stringify(state.perception?.buildingReadiness || "Unknown", null, 2)}
@@ -43,20 +75,16 @@ Define the next mid-term Strategic Goal.
 
 GOAL PRIORITY RULES:
 1. **SURVIVAL IS PARAMOUNT**. If any stat is DYING or CRITICAL, you MUST prioritize fixing that stat (EAT or WARMTH) immediately. Ignore building if you are dying.
-2. **DO NOT LIE**. Trust the FEASIBILITY CALCULATIONS above. If it says "NO", you cannot build. Gather resources instead.
-3. If "CAN_BUILD_X" says "YES", you SHOULD goal to "BUILD_X".
-4. If "CAN_BUILD_X" says "NO" (Missing materials), you MUST goal to GATHER the missing materials.
-5. If "CAN_BUILD_X" says "NO" (Already Built), choose a different goal (e.g. EXPLORE or SURVIVE).
-6. **CAMPFIRES DO NOT PROVIDE FOOD**. They only provide Warmth. Do not build them to cure Hunger.
+
 
 Goals should be one of:
-- SURVIVE (Generic/Critical State)
-- BUILD_SHELTER (Needs 50 wood, 10 stone)
+
+- BUILD_SHELTER (Needs 20 wood,10 stone)
 - BUILD_CAMPFIRE (Needs 10 wood)
-- GATHER_FOOD (If hunger is low)
-- GATHER_WOOD (Prerequisite for building)
-- GATHER_STONE (Prerequisite for building)
-- EXPLORE (If resources are far/unknown)
+- STAND_NEAR_CAMPFIRE (only possible if one is built)
+- GATHER_FOOD (To maintain high hunger or stockpile)
+- GATHER_WOOD 
+- GATHER_STONE 
 
 Respond in VALID JSON ONLY:
 {
@@ -88,8 +116,7 @@ Your job is to break down a STRATEGIC GOAL into a list of executable steps for t
 STRATEGIC GOAL: ${strategicGoal.goal} (${strategicGoal.priority})
 REASONING: ${strategicGoal.reasoning}
 
-WORLD RULES & KNOWLEDGE:
-${worldRules}
+
 
 ---
 CURRENT STATE:
@@ -146,8 +173,7 @@ export function getDecidePrompt(agentName, state, worldRules) {
     return `
 You are ${agentName}, a survivor on a stranded island.
 
-WORLD RULES & KNOWLEDGE:
-${worldRules}
+
 
 YOUR CURRENT STATE:
 - Position: [${position}]

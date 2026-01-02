@@ -115,7 +115,7 @@ export class SimulationController {
         } else {
           clearInterval(agent.strategicInterval);
         }
-      }, 15000 + Math.random() * 5000); // Reduced from 30s to 15s
+      }, 3000 + Math.random() * 2000); // Reduced to ~4s for higher responsiveness
     }, initialDelay);
   }
 

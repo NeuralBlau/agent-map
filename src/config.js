@@ -52,7 +52,7 @@ export const AGENT = {
 
     // Stat effects
     HUNGER_REPLENISH: {
-        berry: 15,
+        berry: 45,
         cookedMeat: 40,
         rawMeat: 20
     },
