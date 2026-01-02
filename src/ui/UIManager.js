@@ -1,5 +1,20 @@
 import * as THREE from 'three';
-import { updateThoughtBubble } from './ThoughtBubble.js';
+import { updateThoughtBubble, updateGoalIcon } from './ThoughtBubble.js';
+
+// Helper for icons
+function getGoalIcon(goal) {
+    if (!goal) return '💤';
+    switch (goal) {
+        case 'GATHER_WOOD': return '🪵';
+        case 'GATHER_STONE': return '🪨';
+        case 'GATHER_FOOD': return '🫐';
+        case 'BUILD_SHELTER': return '🏠';
+        case 'BUILD_CAMPFIRE': return '🔥';
+        case 'STAND_NEAR_CAMPFIRE': return '🌡️';
+        case 'EXPLORE': return '🗺️';
+        default: return '❓';
+    }
+}
 
 /**
  * UIManager class - Handles all DOM manipulation, HUD, and inspector panels
@@ -43,6 +58,7 @@ export class UIManager {
                 <div class="agent-panel-header">
                     <div class="agent-color-dot agent-${agentIndex}"></div>
                     <span class="agent-name">${agent.name}</span>
+                    <span class="agent-goal-icon" style="margin-left:5px; font-size:1.2em;">💤</span>
                     <span class="agent-state">${agent.state}</span>
                 </div>
                 <div class="agent-thought">Waiting...</div>
@@ -60,6 +76,7 @@ export class UIManager {
             this.agentElements.set(agent.name, {
                 panel: panel,
                 state: panel.querySelector('.agent-state'),
+                goalIcon: panel.querySelector('.agent-goal-icon'),
                 thought: panel.querySelector('.agent-thought'),
                 stats: {
                     hunger: stats[0],
@@ -112,6 +129,19 @@ export class UIManager {
         if (els.state.textContent !== agent.state) {
             els.state.textContent = agent.state;
         }
+
+        // --- NEW: Update Goal Icon ---
+        const currentGoal = agent.layers?.strategic?.goal;
+        const icon = getGoalIcon(currentGoal);
+        if (els.goalIcon.textContent !== icon) {
+            els.goalIcon.textContent = icon;
+            // Optional: tooltip
+            els.goalIcon.title = currentGoal || 'Idle';
+        }
+        
+        // Update 3D Overlay
+        updateGoalIcon(agent, icon);
+        // -----------------------------
 
         if (thought) {
             const formatted = `"${thought.substring(0, 80)}${thought.length > 80 ? '...' : ''}"`;

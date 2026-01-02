@@ -9,6 +9,9 @@ export function getStrategicPrompt(agentName, state, worldRules) {
     const buildings = state.buildings || [];
     const nearbyCampfires = buildings.filter(b => b.type === 'CAMPFIRE');
     
+    // DEBUG LOG
+    console.log(`[PromptTemplate] Generating prompt for ${agentName}. Inventory:`, inventory);
+    
     // Qualitative Stats Helper
     const describe = (val) => {
         if (val > 40) return `safe (${val})`;
@@ -48,7 +51,6 @@ HERE IS YOUR CURRENT STATE:
 - Stats: Hunger: ${describe(stats.hunger)}, Warmth: ${describe(stats.warmth)}, Health: ${describe(stats.health)}
 - Inventory: ${invStr}
 - Nearby Campfires: ${nearbyCampfires.length} built nearby.
-- Last Failure: ${JSON.stringify(agent.lastFailure || "None")}
 
 THE FOLLOWING OPTIONS ARE AVAILABLE TO YOU. DECIDE WHAT YOU WANT TO DO NEXT:
 
@@ -74,10 +76,10 @@ YOUR TASK:
 Define the next mid-term Strategic Goal.
 
 GOAL PRIORITY RULES:
-1. **SURVIVAL IS PARAMOUNT**. If any stat is DYING or CRITICAL, you MUST prioritize fixing that stat (EAT or WARMTH) immediately. Ignore building if you are dying.
+1. **PRIORITIZE HEALTH**. If any stat is DYING or CRITICAL, you MUST prioritize fixing that stat (EAT or WARMTH) immediately. Ignore building if you are dying.
 
 
-Goals should be one of:
+VALID GOALS (CHOOSE EXACTLY ONE KEY FROM BELOW, DO NOT INVENT NEW GOALS):
 
 - BUILD_SHELTER (Needs 20 wood,10 stone)
 - BUILD_CAMPFIRE (Needs 10 wood)
@@ -90,8 +92,7 @@ Respond in VALID JSON ONLY:
 {
   "goal": "GOAL_NAME",
   "priority": "LOW/MEDIUM/HIGH/URGENT",
-  "reasoning": "Brief explanation. IF DYING, state clearly: 'I am dying, must eat/warm up'.",
-  "updateNotepad": "DEPRECATED - LEAVE EMPTY" 
+  "reasoning": "Brief explanation. IF DYING, state clearly: 'I am dying, must eat/warm up'.", 
 }
 `;
 }

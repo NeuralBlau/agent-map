@@ -77,6 +77,10 @@ export class SimulationController {
       console.warn('[Simulation] Failed to reset server logs', e);
     }
 
+    // Clear 2D Overlays (Ghosts)
+    const cssContainer = document.getElementById('css2d-container');
+    if (cssContainer) cssContainer.innerHTML = '';
+
     // Reset World
     this.world.reset();
     this.ui.initAgentPanels(this.world.agents);
