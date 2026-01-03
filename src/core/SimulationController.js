@@ -92,7 +92,7 @@ export class SimulationController {
       this.startBrainLoop(agent, i * 2000);
     });
 
-    Events.emit('log', 'New run started. Agents are awakening.', 'system');
+    Events.emit('log', 'New run started.', 'system');
   }
 
   stopAI() {
@@ -285,7 +285,7 @@ export class SimulationController {
       const reachedTarget = updateAgentMovement(agent, delta);
 
       // Panic Check
-      if ((agent.stats.hunger < 5 || agent.stats.warmth < 5) && agent.behaviorTree && !agent.isThinking) {
+      if ((agent.stats.food < 5 || agent.stats.warmth < 5) && agent.behaviorTree && !agent.isThinking) {
         if (Math.random() < 0.1) {
           this.addAgentLog(agent, '[PANIC] Stats critical!');
           agent.behaviorTree = null;

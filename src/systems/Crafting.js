@@ -29,7 +29,9 @@ export const RECIPES = {
         id: 'shelter',
         name: 'Shelter',
         category: 'building',
-        requirements: { wood: 20, stone: 10 },
+        requirements: { wood: 11, stone: 6
+        
+         },
         craftTime: 1000 * pacing.craftTimeMultiplier,
         description: 'Provides passive warmth restoration',
         effect: {

@@ -115,7 +115,7 @@ export function serializeAgent(agent, allAgents, scene, currentWhisper, resource
             name: agent.name,
             position: [agent.group.position.x.toFixed(1), 0, agent.group.position.z.toFixed(1)],
             stats: {
-                hunger: agent.stats.hunger.toFixed(0),
+                food: agent.stats.food.toFixed(0),
                 warmth: agent.stats.warmth.toFixed(0),
                 health: agent.stats.health.toFixed(0),
                 energy: agent.stats.energy.toFixed(0)

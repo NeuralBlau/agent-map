@@ -7,9 +7,14 @@ function getGoalIcon(goal) {
     switch (goal) {
         case 'GATHER_WOOD': return '🪵';
         case 'GATHER_STONE': return '🪨';
-        case 'GATHER_FOOD': return '🫐';
-        case 'BUILD_SHELTER': return '🏠';
-        case 'BUILD_CAMPFIRE': return '🔥';
+        case 'GATHER_FOOD': 
+        case 'GATHER_BERRIES': 
+        case 'CONSUME_BERRIES': 
+        case 'EAT_BERRIES': return '🫐';
+        case 'BUILD_SHELTER': 
+        case 'CRAFT_SHELTER': return '🏠';
+        case 'BUILD_CAMPFIRE': 
+        case 'CRAFT_CAMPFIRE': return '🔥';
         case 'STAND_NEAR_CAMPFIRE': return '🌡️';
         case 'EXPLORE': return '🗺️';
         default: return '❓';
@@ -88,7 +93,7 @@ export class UIManager {
                 goalIcon: panel.querySelector('.agent-goal-icon'),
                 thought: panel.querySelector('.agent-thought'),
                 stats: {
-                    hunger: stats[0],
+                    food: stats[0],
                     warmth: stats[1],
                     health: stats[2],
                     energy: stats[3]
@@ -160,7 +165,7 @@ export class UIManager {
             updateThoughtBubble(agent, thought);
         }
 
-        const statKeys = ['hunger', 'warmth', 'health', 'energy'];
+        const statKeys = ['food', 'warmth', 'health', 'energy'];
         statKeys.forEach(key => {
             const el = els.stats[key];
             const value = Math.round(agent.stats[key]);

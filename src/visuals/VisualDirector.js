@@ -69,7 +69,7 @@ class VisualDirector {
             case 'AGENT_ACTION_START':
                 this.triggerInteractionEffect(data.target, data.actionType);
                 break;
-            case 'AGENT_HUNGER_CRITICAL':
+            case 'AGENT_FOOD_CRITICAL':
                 break;
             case 'NIGHT_FALLS':
                 this.environment.setMood('night');

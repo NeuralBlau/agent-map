@@ -32,7 +32,7 @@ The frontend is built with **Vanilla JS** and **Three.js**.
 
 - **Entities**
 
-  - `entities/Agent.js`: Physical properties, stats (hunger/warmth), and movement logic for agents.
+  - `entities/Agent.js`: Physical properties, stats (food/warmth), and movement logic for agents.
   - `entities/ResourceNode.js`: Logic for trees, rocks, and berry bushes.
   - `entities/Building.js`: Logic for structures like campfires and shelters.
 

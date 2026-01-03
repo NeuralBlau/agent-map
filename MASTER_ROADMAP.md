@@ -39,11 +39,13 @@ A **god-game** where the player guides AI agents who build a civilization from s
 ## OVERALL ROADMAP
 
 ### Phase 1: Foundation ✅ COMPLETE
-- [x] Extended agent stats (warmth, hunger, health, energy)
+
+- [x] Extended agent stats (warmth, food, health, energy)
 - [x] Inventory system & Resource harvesting
 - [x] Basic crafting & buildings (campfire, shelter)
 
 ### Phase 2: AI Architecture & Clean Code ✅ COMPLETE
+
 - [x] 3-Layer AI architecture (Strategic / Tactical / Execution)
 - [x] Dynamic Behavior Tree execution engine
 - [x] Codebase modularization (Engine.js, World.js, UIManager.js)
@@ -51,12 +53,14 @@ A **god-game** where the player guides AI agents who build a civilization from s
 - [x] Per-agent notepad system with persistence
 
 ### Phase 3: Social & Advanced (NEXT)
+
 - [ ] Trust/relationship system
 - [ ] Cooperation mechanics
 - [ ] Day/night cycle vs Warmth mechanics
 - [ ] Trading system
 
 ### Phase 3: Social & Advanced (NEXT)
+
 - [ ] Trust/relationship system
 - [ ] Cooperation mechanics
 - [ ] Day/night cycle vs Warmth mechanics
@@ -73,17 +77,17 @@ graph TD
     S[Strategic Layer] -->|Sets Goal| T[Tactical Layer]
     T -->|Generates Plan| E[Execution Layer]
     E -->|BT Status| T
-    
+
     subgraph "Layer 3: Strategic (LLM)"
     S1[Reads Notepad Memory]
     S2[Writes Global Strategy]
     end
-    
+
     subgraph "Layer 2: Tactical (LLM)"
     T1[Natural Language Planning]
     T2[Plan: 'Move to tree_1, then Harvest']
     end
-    
+
     subgraph "Layer 1: Execution (Behavior Tree)"
     E1[Fluid Movement]
     E2[Action Execution]
@@ -120,35 +124,43 @@ graph TD
 ## IMMEDIATE NEXT STEPS (Recommended Order)
 
 ### Step 1: Create world_rules.md
+
 **Why**: Both LLM architecture and game features need this as a reference.  
 **How**: See the example structure in llm_controll_ideation.md  
 **Ask user**: What survival stats should exist? What recipes?
 
 ### Step 2: Extend Agent Stats
+
 **Why**: Foundation for warmth/cold gameplay  
 **How**: See Feature 1.1 in feature_implementation_plan.md
 
 ### Step 3: Add Inventory System
+
 **Why**: Need this before crafting can work  
 **How**: See Feature 1.2 in feature_implementation_plan.md
 
 ### Step 4: Make Resources Harvestable
+
 **Why**: Trees give wood, rocks give stone  
 **How**: See Feature 1.3 in feature_implementation_plan.md
 
 ### Step 5: Add Crafting
+
 **Why**: Let agents build shelters, tools  
 **How**: See Feature 1.4 in feature_implementation_plan.md
 
 ### Step 6: Implement Notepad System
+
 **Why**: Central to the new LLM architecture  
 **How**: See Feature 2.2 in feature_implementation_plan.md
 
 ### Step 7: Refactor to 2-Prompt System
+
 **Why**: Separate strategic vs tactical thinking  
 **How**: See Features 2.3 and 2.4 in feature_implementation_plan.md
 
 ### Step 8: Implement Behavior Trees
+
 **Why**: Smooth execution without LLM latency  
 **How**: See Feature 2.5 in feature_implementation_plan.md
 
@@ -196,14 +208,14 @@ agent-map/
 
 ## KEY ARCHITECTURAL DECISIONS (Already Made)
 
-| Decision | Choice | Reference |
-|----------|--------|-----------|
-| LLM Hosting | Local Ollama (gemma3:4b) | No API costs |
-| LLM Strategy | 1 model, 2 prompts (strategic + tactical) | llm_controll_ideation.md |
-| Agent Memory | Personal notepad files (read-write) | llm_controll_ideation.md |
-| Execution | Behavior Trees (no LLM for movement) | llm_controll_ideation.md |
-| Context | world_rules.md shared document | llm_controll_ideation.md |
-| Agent Count | 5-20 agents planned | Event-triggered + staggered calls |
+| Decision     | Choice                                    | Reference                         |
+| ------------ | ----------------------------------------- | --------------------------------- |
+| LLM Hosting  | Local Ollama (gemma3:4b)                  | No API costs                      |
+| LLM Strategy | 1 model, 2 prompts (strategic + tactical) | llm_controll_ideation.md          |
+| Agent Memory | Personal notepad files (read-write)       | llm_controll_ideation.md          |
+| Execution    | Behavior Trees (no LLM for movement)      | llm_controll_ideation.md          |
+| Context      | world_rules.md shared document            | llm_controll_ideation.md          |
+| Agent Count  | 5-20 agents planned                       | Event-triggered + staggered calls |
 
 ---
 
@@ -238,6 +250,7 @@ window.game.startAI()
 ## HOW TO USE THIS DOCUMENT
 
 ### For a NEW LLM:
+
 1. Read this summary first
 2. Read the linked documents as needed
 3. Ask the user what to work on
@@ -245,6 +258,7 @@ window.game.startAI()
 5. Keep this roadmap updated with completed tasks
 
 ### For the USER:
+
 1. Point new LLMs to this file first
 2. Use the checklist above to track progress
 3. Update this file when priorities change
@@ -255,7 +269,7 @@ window.game.startAI()
 
 Before implementing features, you may want to decide:
 
-1. **Game Pacing**: How fast should stats decay? (Currently hunger only)
+1. **Game Pacing**: How fast should stats decay? (Currently food only)
 2. **Resource Abundance**: How many trees/rocks on the map?
 3. **Crafting Complexity**: Start with 2-3 recipes or full list?
 4. **Agent Names**: Keep "Pioneer"/"Settler" or custom names?
@@ -271,4 +285,4 @@ Before implementing features, you may want to decide:
 
 ---
 
-*This document should be updated whenever major project direction changes occur.*
+_This document should be updated whenever major project direction changes occur._

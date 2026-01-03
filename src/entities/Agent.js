@@ -42,7 +42,7 @@ export function createAgent(name, colorIndex, startPos, visualDirector) {
 
         // Extended stats system
         stats: {
-            hunger: AGENT.INITIAL_STATS.hunger,
+            food: AGENT.INITIAL_STATS.food,
             warmth: AGENT.INITIAL_STATS.warmth,
             health: AGENT.INITIAL_STATS.health,
             energy: AGENT.INITIAL_STATS.energy
@@ -56,7 +56,7 @@ export function createAgent(name, colorIndex, startPos, visualDirector) {
         equipment: {},
 
         // Legacy compatibility
-        hunger: AGENT.INITIAL_STATS.hunger,
+        food: AGENT.INITIAL_STATS.food,
 
         // Timing
         lastActionTime: Date.now(),
@@ -109,7 +109,7 @@ function createStatBars(group) {
 
     const bars = {};
     const statConfigs = [
-        { name: 'hunger', color: COLORS.HUNGER_BAR },
+        { name: 'food', color: COLORS.FOOD_BAR },
         { name: 'warmth', color: COLORS.WARMTH_BAR },
         { name: 'health', color: COLORS.HEALTH_BAR },
         { name: 'energy', color: COLORS.ENERGY_BAR }
@@ -212,8 +212,8 @@ export function updateAgentMovement(agent, delta = 0.016) {
 function calculateMoveSpeed(agent) {
     let speed = AGENT.BASE_SPEED;
 
-    // Hunger affects speed
-    if (agent.stats.hunger < AGENT.CRITICAL_THRESHOLD) {
+    // Food affects speed (Low food = starving)
+    if (agent.stats.food < AGENT.CRITICAL_THRESHOLD) {
         speed = Math.min(speed, AGENT.STARVING_SPEED);
     }
 
@@ -240,13 +240,13 @@ export function updateAgentStats(agent, delta = 0.016) {
     }
 
     // Decay stats over time
-    agent.stats.hunger = Math.max(0, agent.stats.hunger - AGENT.STAT_DECAY.hunger * delta);
+    agent.stats.food = Math.max(0, agent.stats.food - AGENT.STAT_DECAY.food * delta);
     agent.stats.warmth = Math.max(0, agent.stats.warmth - AGENT.STAT_DECAY.warmth * delta);
 
     // Health damage when critical stats are low
-    if (agent.stats.hunger <= 0 || agent.stats.warmth <= 0) {
+    if (agent.stats.food <= 0 || agent.stats.warmth <= 0) {
         agent.stats.health = Math.max(0, agent.stats.health - 0.5 * delta);
-    } else if (agent.stats.hunger > 50 && agent.stats.warmth > 50 && agent.stats.energy > 30) {
+    } else if (agent.stats.food > 50 && agent.stats.warmth > 50 && agent.stats.energy > 30) {
         // Regenerate health when well-fed and warm
         agent.stats.health = Math.min(100, agent.stats.health + AGENT.HEALTH_REGEN_RATE * delta);
     }
@@ -257,7 +257,7 @@ export function updateAgentStats(agent, delta = 0.016) {
     }
 
     // Legacy compatibility
-    agent.hunger = agent.stats.hunger;
+    agent.food = agent.stats.food;
 
     // Check for death
     if (agent.stats.health <= 0) {
@@ -346,17 +346,17 @@ export function consumeItem(agent, itemType) {
 
     switch (itemType) {
         case 'berries':
-            agent.stats.hunger = Math.min(100, agent.stats.hunger + AGENT.HUNGER_REPLENISH.berry);
+            agent.stats.food = Math.min(100, agent.stats.food + AGENT.FOOD_REPLENISH.berry);
             break;
         case 'rawMeat':
-            agent.stats.hunger = Math.min(100, agent.stats.hunger + AGENT.HUNGER_REPLENISH.rawMeat);
+            agent.stats.food = Math.min(100, agent.stats.food + AGENT.FOOD_REPLENISH.rawMeat);
             agent.stats.health = Math.max(0, agent.stats.health - 5); // Raw meat hurts health
             break;
         case 'cookedMeat':
-            agent.stats.hunger = Math.min(100, agent.stats.hunger + AGENT.HUNGER_REPLENISH.cookedMeat);
+            agent.stats.food = Math.min(100, agent.stats.food + AGENT.FOOD_REPLENISH.cookedMeat);
             break;
     }
 
-    agent.hunger = agent.stats.hunger;
+    agent.food = agent.stats.food;
     return true;
 }

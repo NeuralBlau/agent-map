@@ -25,25 +25,6 @@ app.use((req, res, next) => {
 const OLLAMA_URL = 'http://localhost:11434/api/generate';
 const MODEL = 'gemma3:4b';
 
-// Load world rules document
-let worldRules = '';
-try {
-    const rulesPath = path.join(__dirname, 'context', 'world_rules.md');
-    if (fs.existsSync(rulesPath)) {
-        worldRules = fs.readFileSync(rulesPath, 'utf-8');
-        console.log('[Server] Loaded world_rules.md');
-    } else {
-        console.log('[Server] world_rules.md not found, using basic prompts');
-    }
-} catch (e) {
-    console.error('[Server] Error loading world rules:', e.message);
-}
-
-
-// World rules are loaded at startup into the 'worldRules' variable
-
-// World rules are loaded at startup into the 'worldRules' variable
-
 app.post('/decide', async (req, res) => {
     try {
         const { state, agentName } = req.body;
@@ -57,7 +38,7 @@ app.post('/decide', async (req, res) => {
         // Format state information with safe defaults
         const agent = state.agent;
         const stats = {
-            hunger: parseFloat(agent.stats?.hunger) || 100,
+            food: parseFloat(agent.stats?.food) || 100,
             warmth: parseFloat(agent.stats?.warmth) || 100,
             health: parseFloat(agent.stats?.health) || 100,
             energy: parseFloat(agent.stats?.energy) || 100
@@ -68,8 +49,8 @@ app.post('/decide', async (req, res) => {
         const others = state.others || [];
         const position = agent.position || [0, 0, 0];
 
-        const prompt = getDecidePrompt(agentName, state, worldRules);
-        const result = await callLLM(prompt, agentName);
+        const prompt = getDecidePrompt(agentName, state);
+        const result = await callLLM(prompt, agentName, 'json', 'DECIDE');
 
         if (result) {
             // Log decision to console and debug file
@@ -108,11 +89,12 @@ app.post('/strategic', async (req, res) => {
             return res.json({ goal: 'SURVIVE', priority: 'SURVIVAL', reasoning: 'No state available' });
         }
 
-        const prompt = getStrategicPrompt(agentName, state, worldRules);
-        const result = await callLLM(prompt, agentName);
+        const prompt = getStrategicPrompt(agentName, state);
+        const result = await callLLM(prompt, agentName, 'json', 'STRATEGIC');
 
         if (result) {
             console.log(`[${agentName}][STRAT] Goal: ${result.goal} | Prio: ${result.priority}`);
+            // ... logger ...
             logger.log('STRATEGIC', agentName, {
                 decision: result,
                 context: {
@@ -125,11 +107,11 @@ app.post('/strategic', async (req, res) => {
             return res.json(result);
         }
 
-        res.json({ goal: 'SURVIVE', priority: 'MEDIUM', reasoning: 'Default goal (LLM Fail)' });
+        res.json({ goal: 'SURVIVE', priority: 'MEDIUM', reasoning: 'FATAL FALLBACK (LLM returned null/invalid)' });
     } catch (error) {
         console.error(`[Strategic] Error for ${req.body?.agentName}:`, error.message);
         logger.log('ERROR', req.body?.agentName || 'Server', { error: error.message, path: '/strategic' });
-        res.json({ goal: 'GATHER_RESOURCES', priority: 'MEDIUM', reasoning: 'Default goal' });
+        res.json({ goal: 'GATHER_RESOURCES', priority: 'MEDIUM', reasoning: 'ERROR BLOCK FALLBACK (Server Error)' });
     }
 });
 
@@ -143,10 +125,16 @@ app.post('/tactical', async (req, res) => {
         if (!state || !state.agent) {
             return res.json({ plan: ['WAIT'], currentStep: 0, thought: 'No state available' });
         }
+        
+        // Debug Log for issue investigation
+        if (!strategicGoal) {
+             console.error(`[Tactical] MISSING strategicGoal for ${agentName}. Body:`, JSON.stringify(req.body));
+             return res.json({ plan: ['WAIT'], currentStep: 0, thought: 'Missing strategic goal' });
+        }
 
-        const prompt = getTacticalPrompt(agentName, state, worldRules, strategicGoal);
+        const prompt = getTacticalPrompt(agentName, state, strategicGoal);
 
-        const result = await callLLM(prompt, agentName);
+        const result = await callLLM(prompt, agentName, 'json', 'TACTICAL');
 
         if (result) {
             console.log(`[${agentName}][TACT] Plan: ${result.plan?.length || 0} steps`);
@@ -176,7 +164,7 @@ app.post('/tactical', async (req, res) => {
             fallbackPlan.push(`Move to ${nearestRock.id}`, `Gather from ${nearestRock.id}`);
         }
         if (fallbackPlan.length === 0) {
-            fallbackPlan.push('Harvest wood', 'Harvest stone');
+            fallbackPlan.push('WAIT');
         }
 
         console.error(`[Tactical] Error for ${req.body?.agentName}:`, error.message);
@@ -199,7 +187,7 @@ app.post('/reset-log', (req, res) => {
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', model: MODEL, worldRulesLoaded: !!worldRules });
+    res.json({ status: 'ok', model: MODEL });
 });
 
 
@@ -208,7 +196,7 @@ console.log('[Server] Reached end of file, starting server...');
 app.listen(port, () => {
     console.log(`AI Bridge active on http://localhost:${port}`);
     console.log(`Using model: ${MODEL}`);
-    console.log(`World rules: ${worldRules ? 'loaded' : 'not loaded'}`);
+
 });
 
 // Keep process alive

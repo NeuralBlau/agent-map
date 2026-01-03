@@ -30,7 +30,7 @@ export const AGENT = {
 
     // Extended stats - initial values
     INITIAL_STATS: {
-        hunger: 100,
+        food: 100,
         warmth: 100,
         health: 100,
         energy: 100
@@ -38,7 +38,7 @@ export const AGENT = {
 
     // Stat decay rates (per second) from pacing preset
     STAT_DECAY: {
-        hunger: pacing.hungerDecayRate,
+        food: pacing.foodDecayRate,
         warmth: pacing.warmthDecayRate,
         energy: pacing.energyDecayRate
     },
@@ -51,7 +51,7 @@ export const AGENT = {
     DEATH_THRESHOLD: 0,      // At 0, agent dies
 
     // Stat effects
-    HUNGER_REPLENISH: {
+    FOOD_REPLENISH: {
         berry: 45,
         cookedMeat: 40,
         rawMeat: 20
@@ -102,7 +102,7 @@ export const COLORS = {
     get AGENT_SETTLER() { return themeManager.get('accentB'); },
     
     // Bar colors - Keeping these static or semantic?
-    HUNGER_BAR: 'hsl(30, 100%, 60%)',
+    FOOD_BAR: 'hsl(30, 100%, 60%)',
     WARMTH_BAR: 'hsl(210, 100%, 65%)',
     HEALTH_BAR: 'hsl(0, 100%, 65%)',
     ENERGY_BAR: 'hsl(50, 100%, 60%)',

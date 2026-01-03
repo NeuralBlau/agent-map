@@ -6,7 +6,7 @@ export const PACING_PRESETS = {
     fast: {
         name: 'Fast',
         description: 'Quick stat decay, intense survival pressure',
-        hungerDecayRate: 2.0,      // Per second
+        foodDecayRate: 2.0,      // Per second
         warmthDecayRate: 0.5,
         energyDecayRate: 0.3,
         healthRegenRate: 0.1,
@@ -16,7 +16,7 @@ export const PACING_PRESETS = {
     medium: {
         name: 'Medium',
         description: 'Balanced gameplay',
-        hungerDecayRate: 1.0,
+        foodDecayRate: 1.0,
         warmthDecayRate: 0.2,
         energyDecayRate: 0.1,
         healthRegenRate: 0.05,
@@ -26,7 +26,7 @@ export const PACING_PRESETS = {
     slow: {
         name: 'Slow',
         description: 'Relaxed pace, focus on building',
-        hungerDecayRate: 0.5,
+        foodDecayRate: 0.5,
         warmthDecayRate: 0.1,
         energyDecayRate: 0.05,
         healthRegenRate: 0.02,
