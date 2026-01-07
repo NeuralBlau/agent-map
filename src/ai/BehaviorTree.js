@@ -281,7 +281,9 @@ export class HarvestNode extends BTNode {
         const dist = agent.group.position.distanceTo(resource.group.position);
         if (dist > AGENT.INTERACTION_DISTANCE + 0.5) {
             // Need to move first
+            console.log(`[BT] Harvest failed: Too far. Dist: ${dist.toFixed(2)} > ${AGENT.INTERACTION_DISTANCE + 0.5}`); 
             this.status = NodeStatus.FAILURE;
+            agent.lastError = `Too far to harvest (${dist.toFixed(1)}m)`;
             return NodeStatus.FAILURE;
         }
 
@@ -300,7 +302,8 @@ export class HarvestNode extends BTNode {
         // Start harvesting
         const success = startHarvest(resource, agent, (hasMore) => {
             addLog(`${agent.name} harvested from ${this.targetId}`, 'system');
-            this.harvesting = false;
+            // Do NOT reset this.harvesting here. 
+            // Let the tick() loop detect agent.state !== 'HARVESTING' to return SUCCESS.
         });
 
         if (success) {
@@ -310,7 +313,9 @@ export class HarvestNode extends BTNode {
             return NodeStatus.RUNNING;
         }
 
+        console.log(`[BT] Harvest failed: startHarvest returned false`);
         this.status = NodeStatus.FAILURE;
+        agent.lastError = `Failed to start harvest`;
         return NodeStatus.FAILURE;
     }
 
@@ -359,7 +364,8 @@ export class BuildNode extends BTNode {
                 createBuilding(recipe.id, pos.x, pos.z, scene, agent.name);
                 addLog(`${agent.name} built a ${recipe.name}!`, 'system');
             }
-            this.building = false;
+            // Do NOT reset this.building here.
+            // Let the tick() loop detect agent.state !== 'CRAFTING' to return SUCCESS.
         });
 
         this.building = true;
@@ -527,5 +533,30 @@ export class RepeatUntilFail extends BTNode {
 
     getActiveNode() {
         return this.child.getActiveNode();
+    }
+}
+/**
+ * InternalWaitNode - Pauses execution for a duration without visible UI status
+ */
+export class InternalWaitNode extends BTNode {
+    constructor(durationMs = 1000) {
+        super('InternalWait');
+        this.duration = durationMs;
+        this.startTime = 0;
+    }
+
+    tick(agent, context) {
+        const now = Date.now();
+        if (this.status !== NodeStatus.RUNNING) {
+            this.startTime = now;
+            this.status = NodeStatus.RUNNING;
+        }
+
+        if (now - this.startTime >= this.duration) {
+            this.reset();
+            return NodeStatus.SUCCESS;
+        }
+
+        return NodeStatus.RUNNING;
     }
 }

@@ -4,6 +4,7 @@ import { Events } from '../systems/Events.js';
 import { serializeAgent } from '../ai/AgentPerception.js';
 import { serializeBuildings, createBuilding } from '../entities/Building.js';
 import { buildTreeFromPlan, createBTContext } from '../ai/PlanExecutor.js';
+import { TacticalPlanner } from '../ai/TacticalPlanner.js';
 import { NodeStatus } from '../ai/BehaviorTree.js';
 import { updateAgentMovement, 
   updateAgentStats, 
@@ -108,19 +109,22 @@ export class SimulationController {
   }
 
   startBrainLoop(agent, initialDelay = 0) {
+    if (!agent.goalBuffer) agent.goalBuffer = [];
+    
+    // Initial Think
     setTimeout(() => {
-      if (!this.isSimulationRunning) return;
-      
-      this.strategicLoop(agent);
-
-      agent.strategicInterval = setInterval(() => {
-        if (!agent.isDead && this.isSimulationRunning) {
-          this.strategicLoop(agent);
-        } else {
-          clearInterval(agent.strategicInterval);
-        }
-      }, 3000 + Math.random() * 2000); // Reduced to ~4s for higher responsiveness
+        if (!this.isSimulationRunning) return;
+        this.strategicLoop(agent);
     }, initialDelay);
+
+    // PRODUCER LOOP: Fixed 10s Interval
+    agent.strategicInterval = setInterval(() => {
+        if (!agent.isDead && this.isSimulationRunning) {
+            this.strategicLoop(agent);
+        } else {
+            clearInterval(agent.strategicInterval);
+        }
+    }, 10000); // FIXED 10s Interval
   }
 
   async strategicLoop(agent) {
@@ -139,15 +143,9 @@ export class SimulationController {
     Events.emit('agentStatus', agent);
 
     try {
+      // Serializer... (We still need state for context, though less critical now)
       const buildings = serializeBuildings(agent.group.position);
-      const state = serializeAgent(
-        agent, 
-        this.world.agents, 
-        this.engine.scene, 
-        this.currentWhisper, 
-        this.world.resourceNodes,
-        buildings
-      );
+      const state = serializeAgent(agent, this.world.agents, this.engine.scene, this.currentWhisper, this.world.resourceNodes, buildings);
 
       const res = await fetch(API.STRATEGIC_ENDPOINT, {
         method: 'POST',
@@ -156,20 +154,29 @@ export class SimulationController {
       });
 
       const result = await res.json();
-      const previousGoal = agent.layers.strategic.goal;
-
-      agent.layers.strategic = {
+      
+      const newGoal = {
         goal: result.goal || 'SURVIVE',
         priority: result.priority || 'MEDIUM',
         reasoning: result.reasoning || '',
         updatedAt: Date.now()
       };
 
-      this.addAgentLog(agent, `[STRATEGIC] Goal: ${result.goal} (${result.priority})`);
+      // BUFFER LOGIC
+      if (!agent.goalBuffer) agent.goalBuffer = [];
 
-      // Await the tactical planning within the same thinking lock
-      if (previousGoal !== result.goal || !agent.behaviorTree) {
-        await this.tacticalLoop(agent, true); // true = force bypass isThinking
+      // 1. Deduplication REPLACED by user request: ALLOW DUPLICATES
+      // "Remove the logic that makes the agent the straegic goal from the straetgic mind if it was the same two times in a row."
+      // So we just pass through.
+      
+      // 2. Push
+      agent.goalBuffer.push(newGoal);
+      this.addAgentLog(agent, `[Buffer] Added: ${newGoal.goal}. Size: ${agent.goalBuffer.length}`);
+
+      // 3. Overflow Reset
+      if (agent.goalBuffer.length > 5) {
+          agent.goalBuffer = [newGoal]; // Hard Reset
+          this.addAgentLog(agent, `[Buffer] Overflow! Resetting queue.`);
       }
 
       this.ui.updateInspectorPanel(agent);
@@ -183,59 +190,48 @@ export class SimulationController {
 
   async tacticalLoop(agent, force = false) {
     if (agent.isDead || !this.isSimulationRunning) return;
-    if (agent.isThinking && !force) return;
-
-    if (!force) {
-      agent.isThinking = true;
-      Events.emit('agentStatus', agent);
-    }
+    
+    // We don't need 'isThinking' lock for local planner really, but good for consistent state
+    // agent.isThinking = true; 
 
     try {
-      const buildings = serializeBuildings(agent.group.position);
-      const state = serializeAgent(
-        agent, 
-        this.world.agents, 
-        this.engine.scene, 
-        this.currentWhisper, 
-        this.world.resourceNodes,
-        buildings
+      const strategicGoal = agent.layers.strategic;
+      
+      // LOCAL PLANNER CALL
+      const result = TacticalPlanner.generatePlan(
+          agent, 
+          strategicGoal, 
+          this.world.resourceNodes,
+          this.world.buildings // Pass buildings for duplicate checks
       );
 
-      const res = await fetch(API.TACTICAL_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          agentName: agent.name,
-          state,
-          strategicGoal: agent.layers.strategic
-        })
-      });
-
-      const result = await res.json();
       agent.layers.tactical = {
         plan: result.plan || [],
-        currentStep: result.currentStep || 0,
+        currentStep: 0,
         thought: result.thought || '',
         updatedAt: Date.now()
       };
+      
+      // Visualize Thought
+      agent.thought = result.thought;
+      Events.emit('agentStatus', agent); // Trigger bubble update
 
       if (result.plan && result.plan.length > 0) {
         agent.behaviorTree = buildTreeFromPlan(result.plan);
         if (agent.behaviorTree) {
           agent.btStartTime = Date.now();
-          this.addAgentLog(agent, `[BT] Built tree with ${result.plan.length} steps`);
+          this.addAgentLog(agent, `[Tactical] Plan: ${result.plan.join(', ')}`);
         }
       } else {
         agent.behaviorTree = null;
+        // If plan is null (e.g. missing materials), we should probably fail/wait
+        // The thought bubble "❌" is handled inside Planner usually, or here if we want override
       }
 
-      this.addAgentLog(agent, `[TACTICAL] Plan: ${result.plan?.length || 0} steps`);
       this.ui.updateInspectorPanel(agent);
 
     } finally {
-      if (!force) {
-        agent.isThinking = false;
-      }
+      agent.isThinking = false;
     }
   }
 
@@ -284,14 +280,8 @@ export class SimulationController {
 
       const reachedTarget = updateAgentMovement(agent, delta);
 
-      // Panic Check
-      if ((agent.stats.food < 5 || agent.stats.warmth < 5) && agent.behaviorTree && !agent.isThinking) {
-        if (Math.random() < 0.1) {
-          this.addAgentLog(agent, '[PANIC] Stats critical!');
-          agent.behaviorTree = null;
-          this.strategicLoop(agent);
-        }
-      }
+      // Panic Check - REMOVED per user request
+      // (The system is now robust enough to recover without forced interrupts)
 
       // BT Execution
       if (agent.behaviorTree && !agent.isThinking) {
@@ -309,35 +299,57 @@ export class SimulationController {
           createBuilding: (type, x, z, bId) => createBuilding(type, x, z, this.engine.visualDirector, bId),
           consumeItem,
           findNearestResource: (type) => findNearestResource(type, agent.group.position, this.world.resourceNodes),
-          visualDirector: this.engine.visualDirector
+          visualDirector: this.engine.visualDirector,
+          buildings: this.world.buildings // New: Pass buildings array
         });
 
         const status = agent.behaviorTree.tick(agent, btContext);
         
         // Update immediate layer for UI
         const activeNode = agent.behaviorTree.getActiveNode ? agent.behaviorTree.getActiveNode() : agent.behaviorTree;
-        agent.layers.immediate = {
-          action: activeNode.name || 'Executing Plan',
-          target: activeNode.targetId || activeNode.target || 'active',
-          state: status
-        };
+        
+        // InternalWait is purely functional, don't show it to user
+        if (activeNode.name !== 'InternalWait') {
+            agent.layers.immediate = {
+            action: activeNode.name || 'Executing Plan',
+            target: activeNode.targetId || activeNode.target || 'active',
+            state: status
+            };
+        }
 
         if (status === NodeStatus.SUCCESS) {
           this.addAgentLog(agent, '[BT] Plan completed successfully!');
           agent.behaviorTree = null;
-          this.strategicLoop(agent);
+          
+          // AGGRESSIVE TRIGGER: If buffer is empty, don't wait for 10s loop!
+          if (!agent.goalBuffer || agent.goalBuffer.length === 0) {
+              this.strategicLoop(agent);
+          }
+
         } else if (status === NodeStatus.FAILURE) {
-          this.addAgentLog(agent, `[BT] Plan failed.`);
+          agent.thought = "❌"; // Visual feedback
+          this.addAgentLog(agent, `[BT] Plan failed: ${agent.lastError || ''}`);
           agent.behaviorTree = null;
-          this.tacticalLoop(agent);
+          
+          // AGGRESSIVE RETRY: If plan failed, we likely need a new strategy immediately.
+          // Don't just wait 10s or pull from buffer (which might be the same bad plan).
+          // Let's clear buffer and rethink? Or just rethink if empty?
+          // User asked if it triggers rethink. Let's make it trigger rethink.
+          if (!agent.goalBuffer || agent.goalBuffer.length === 0) {
+               this.strategicLoop(agent);
+          }
         }
-      } else if (!agent.behaviorTree && !agent.isThinking) {
-        // Proactive Thinking Debounce - increased to 8s to prevent hammering
-        const timeSinceLastRequest = Date.now() - (agent.lastTacticalRequestTime || 0);
-        if (timeSinceLastRequest > 8000) {
-          agent.lastTacticalRequestTime = Date.now();
-          this.strategicLoop(agent);
-        }
+      } 
+      
+      // Buffer Consumption (Consumer)
+      if (!agent.behaviorTree && !agent.isThinking) {
+          // Check Buffer
+          if (agent.goalBuffer && agent.goalBuffer.length > 0) {
+              const nextGoal = agent.goalBuffer.shift();
+              agent.layers.strategic = nextGoal;
+              this.addAgentLog(agent, `[Buffer] Popped goal: ${nextGoal.goal}. Remaining: ${agent.goalBuffer.length}`);
+              this.tacticalLoop(agent); // Use local planner
+          }
       }
 
       updateAgentIdle(agent, now);

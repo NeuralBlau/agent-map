@@ -26,10 +26,10 @@ export class World {
         resetUsedNames();
         
         const agentPioneer = createAgent(getRandomName(), 0, new THREE.Vector3(2, 0, 2), this.visualDirector);
-        const agentSettler = createAgent(getRandomName(), 1, new THREE.Vector3(-2, 0, -2), this.visualDirector);
+        // const agentSettler = createAgent(getRandomName(), 1, new THREE.Vector3(-2, 0, -2), this.visualDirector);
 
         this.agents.push(agentPioneer);
-        this.agents.push(agentSettler);
+        // this.agents.push(agentSettler);
 
         console.log(`[World] Initialized with agents: ${this.agents.map(a => a.name).join(', ')}`);
     }

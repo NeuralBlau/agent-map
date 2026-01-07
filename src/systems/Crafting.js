@@ -29,7 +29,7 @@ export const RECIPES = {
         id: 'shelter',
         name: 'Shelter',
         category: 'building',
-        requirements: { wood: 11, stone: 6
+        requirements: { wood: 15, stone: 6
         
          },
         craftTime: 1000 * pacing.craftTimeMultiplier,

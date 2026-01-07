@@ -80,7 +80,6 @@ export class UIManager {
                     <div class="agent-stat"><span class="stat-icon">🍖</span><span class="stat-value">100</span></div>
                     <div class="agent-stat"><span class="stat-icon">🔥</span><span class="stat-value">100</span></div>
                     <div class="agent-stat"><span class="stat-icon">❤️</span><span class="stat-value">100</span></div>
-                    <div class="agent-stat"><span class="stat-icon">⚡</span><span class="stat-value">100</span></div>
                 </div>
             `;
             this.agentPanelsContainer.appendChild(panel);
@@ -95,8 +94,7 @@ export class UIManager {
                 stats: {
                     food: stats[0],
                     warmth: stats[1],
-                    health: stats[2],
-                    energy: stats[3]
+                    health: stats[2]
                 }
             });
 
@@ -165,7 +163,7 @@ export class UIManager {
             updateThoughtBubble(agent, thought);
         }
 
-        const statKeys = ['food', 'warmth', 'health', 'energy'];
+        const statKeys = ['food', 'warmth', 'health'];
         statKeys.forEach(key => {
             const el = els.stats[key];
             const value = Math.round(agent.stats[key]);

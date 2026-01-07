@@ -117,8 +117,7 @@ export function serializeAgent(agent, allAgents, scene, currentWhisper, resource
             stats: {
                 food: agent.stats.food.toFixed(0),
                 warmth: agent.stats.warmth.toFixed(0),
-                health: agent.stats.health.toFixed(0),
-                energy: agent.stats.energy.toFixed(0)
+                health: agent.stats.health.toFixed(0)
             },
             inventory: serializeInventory(agent),
             state: agent.state,

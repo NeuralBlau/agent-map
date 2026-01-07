@@ -102,9 +102,12 @@ export function applyBuildingEffects(agents, delta = 0.016) {
             if (dist <= building.effect.radius) {
                 switch (building.effect.type) {
                     case 'warmth_nearby':
-                        agent.stats.warmth = Math.min(100,
-                            agent.stats.warmth + building.effect.warmthPerSecond * delta
-                        );
+                        // Only regenerate warmth if IDLE (standing still)
+                        if (agent.state === 'IDLE') {
+                            agent.stats.warmth = Math.min(100,
+                                agent.stats.warmth + (8.0 * delta) // ~33 warmth per second (full charge in 3s)
+                            );
+                        }
                         break;
                     case 'warmth_passive':
                         agent.stats.warmth = Math.min(100,

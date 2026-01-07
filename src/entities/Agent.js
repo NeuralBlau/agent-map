@@ -44,8 +44,7 @@ export function createAgent(name, colorIndex, startPos, visualDirector) {
         stats: {
             food: AGENT.INITIAL_STATS.food,
             warmth: AGENT.INITIAL_STATS.warmth,
-            health: AGENT.INITIAL_STATS.health,
-            energy: AGENT.INITIAL_STATS.energy
+            health: AGENT.INITIAL_STATS.health
         },
 
         // Inventory system
@@ -111,8 +110,7 @@ function createStatBars(group) {
     const statConfigs = [
         { name: 'food', color: COLORS.FOOD_BAR },
         { name: 'warmth', color: COLORS.WARMTH_BAR },
-        { name: 'health', color: COLORS.HEALTH_BAR },
-        { name: 'energy', color: COLORS.ENERGY_BAR }
+        { name: 'health', color: COLORS.HEALTH_BAR }
     ];
 
     statConfigs.forEach((config, index) => {
@@ -192,8 +190,7 @@ export function updateAgentMovement(agent, delta = 0.016) {
         agent.group.scale.set(squash, stretch, squash);
         agent.group.position.y = 0.5 + bounce * 0.2;
 
-        // Moving consumes energy
-        agent.stats.energy = Math.max(0, agent.stats.energy - AGENT.STAT_DECAY.energy * delta);
+        // Moving consumes energy - REMOVED
 
         return false;
     } else if (agent.state === 'MOVING') {
@@ -222,10 +219,7 @@ function calculateMoveSpeed(agent) {
         speed = Math.min(speed, AGENT.FREEZING_SPEED);
     }
 
-    // Low energy affects speed
-    if (agent.stats.energy < AGENT.CRITICAL_THRESHOLD) {
-        speed *= 0.7;
-    }
+    // Low energy affects speed - REMOVED
 
     return speed;
 }
@@ -246,15 +240,12 @@ export function updateAgentStats(agent, delta = 0.016) {
     // Health damage when critical stats are low
     if (agent.stats.food <= 0 || agent.stats.warmth <= 0) {
         agent.stats.health = Math.max(0, agent.stats.health - 0.5 * delta);
-    } else if (agent.stats.food > 50 && agent.stats.warmth > 50 && agent.stats.energy > 30) {
+    } else if (agent.stats.food > 50 && agent.stats.warmth > 50) {
         // Regenerate health when well-fed and warm
         agent.stats.health = Math.min(100, agent.stats.health + AGENT.HEALTH_REGEN_RATE * delta);
     }
 
-    // Energy regenerates slowly when not moving
-    if (agent.state !== 'MOVING' && agent.state !== 'HARVESTING') {
-        agent.stats.energy = Math.min(100, agent.stats.energy + 0.05 * delta);
-    }
+    // Energy regenerates slowly when not moving - REMOVED
 
     // Legacy compatibility
     agent.food = agent.stats.food;

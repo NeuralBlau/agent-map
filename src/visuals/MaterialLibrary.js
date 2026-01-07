@@ -27,25 +27,30 @@ class MaterialLibrary {
 
     _createStandardMaterials() {
         // Custom "Soft Stylized" Material Template - Now Theme-Aware
-        const createSoftMaterial = (colorSource, roughness = 0.8, uniformRef = null) => {
-            const mat = new THREE.MeshStandardMaterial({
-                color: typeof colorSource === 'string' ? new THREE.Color(colorSource) : (colorSource.value ? colorSource.value : colorSource),
-                roughness: roughness,
-                metalness: 0.1,
-                flatShading: false
-            });
+    }
+    
+    // Helper for soft materials
+    _createSoftMaterial(colorSource, roughness = 0.8, uniformRef = null) {
+        const mat = new THREE.MeshStandardMaterial({
+            color: typeof colorSource === 'string' ? new THREE.Color(colorSource) : (colorSource.value ? colorSource.value : colorSource),
+            roughness: roughness,
+            metalness: 0.1,
+            flatShading: false
+        });
 
-            // CRITICAL: Ensure unique shader programs for materials using onBeforeCompile
-            if (uniformRef) {
-                mat.customProgramCacheKey = () => uniformRef;
-                
-                mat.onBeforeCompile = (shader) => {
-                    ShaderUtils.injectUniform(shader, uniformRef, 'vec3', themeManager.uniforms[uniformRef]);
-                    ShaderUtils.applyFoliagePop(shader, uniformRef);
-                };
-            }
-            return mat;
-        };
+        // CRITICAL: Ensure unique shader programs for materials using onBeforeCompile
+        if (uniformRef) {
+            mat.customProgramCacheKey = () => uniformRef;
+            
+            mat.onBeforeCompile = (shader) => {
+                ShaderUtils.injectUniform(shader, uniformRef, 'vec3', themeManager.uniforms[uniformRef]);
+                ShaderUtils.applyFoliagePop(shader, uniformRef);
+            };
+        }
+        return mat;
+    }
+
+    _createStandardMaterials() {
 
         // Agent Body - Now decoupled from UI accents & Indexed for scaling
         this.materials.set('agent_standard', (index = 0) => {
@@ -68,11 +73,12 @@ class MaterialLibrary {
         this.materials.set('ui_black', new THREE.MeshBasicMaterial({ color: 0x000000 }));
         
         // Resource Defaults - Using theme tints
-        this.materials.set('tree_trunk', createSoftMaterial(themeManager.uniforms.uTrunkColor, 0.9, 'uTrunkColor'));
-        this.materials.set('tree_leaves', createSoftMaterial(themeManager.uniforms.uTreeColor, 0.4, 'uTreeColor'));
-        this.materials.set('berry_leaves', createSoftMaterial(themeManager.uniforms.uBerryColor, 0.4, 'uBerryColor'));
-        this.materials.set('rock_standard', createSoftMaterial('hsl(0, 0%, 50%)', 0.8, null));
-        this.materials.set('mountain_standard', createSoftMaterial(themeManager.uniforms.uMountainColor, 0.95, 'uMountainColor'));
+        // Resource Defaults - Using theme tints
+        this.materials.set('tree_trunk', this._createSoftMaterial(themeManager.uniforms.uTrunkColor, 0.9, 'uTrunkColor'));
+        this.materials.set('tree_leaves', this._createSoftMaterial(themeManager.uniforms.uTreeColor, 0.4, 'uTreeColor'));
+        this.materials.set('berry_leaves', this._createSoftMaterial(themeManager.uniforms.uBerryColor, 0.4, 'uBerryColor'));
+        this.materials.set('rock_standard', this._createSoftMaterial('hsl(0, 0%, 50%)', 0.8, null));
+        this.materials.set('mountain_standard', this._createSoftMaterial(themeManager.uniforms.uMountainColor, 0.95, 'uMountainColor'));
     }
 
     /**
@@ -168,7 +174,7 @@ class MaterialLibrary {
                 return group;
 
             case 'shelter':
-                const tent = new THREE.Mesh(new THREE.ConeGeometry(2, 2.5, 4), createSoftMaterial('hsl(25, 40%, 40%)'));
+                const tent = new THREE.Mesh(new THREE.ConeGeometry(2, 2.5, 4), this._createSoftMaterial('hsl(25, 40%, 40%)'));
                 tent.position.y = 1.25;
                 tent.rotation.y = Math.PI/4;
                 group.add(tent);

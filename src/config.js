@@ -32,15 +32,13 @@ export const AGENT = {
     INITIAL_STATS: {
         food: 100,
         warmth: 100,
-        health: 100,
-        energy: 100
+        health: 100
     },
 
     // Stat decay rates (per second) from pacing preset
     STAT_DECAY: {
         food: pacing.foodDecayRate,
-        warmth: pacing.warmthDecayRate,
-        energy: pacing.energyDecayRate
+        warmth: 0.8 // Reduced from 1.5 to allow more time for building
     },
 
     // Health regeneration when other stats are good
@@ -105,13 +103,12 @@ export const COLORS = {
     FOOD_BAR: 'hsl(30, 100%, 60%)',
     WARMTH_BAR: 'hsl(210, 100%, 65%)',
     HEALTH_BAR: 'hsl(0, 100%, 65%)',
-    ENERGY_BAR: 'hsl(50, 100%, 60%)',
     EYE: 'hsl(0, 0%, 20%)'
 };
 
 export const API = {
     BASE_URL: 'http://localhost:3000',
-    LLM_ENDPOINT: 'http://localhost:3000/decide',
+
     STRATEGIC_ENDPOINT: 'http://localhost:3000/strategic',
     TACTICAL_ENDPOINT: 'http://localhost:3000/tactical',
     RESET_LOG_ENDPOINT: 'http://localhost:3000/reset-log',

@@ -28,12 +28,12 @@ export function getStrategicPrompt(agentName, state) {
             return "Low";
         }
         if (type === 'stone') {
-            if (val >= 5) return "High";
-            if (val >= 2) return "Medium";
+            if (val >= 6) return "High";
+            if (val >= 3) return "Medium";
             return "Low";
         }
-        if (val >= 10) return "Very High";
-        if (val >= 9) return "High";
+        if (val >= 15) return "Very High";
+        if (val >= 10) return "High";
         if (val >= 5) return "Medium";        
         return "Low";
     };
@@ -45,7 +45,7 @@ export function getStrategicPrompt(agentName, state) {
     const promptText = `
 You are an expert thinking model which can come up with optimal plans controll an agent in a video game and your task is to make plans to survive and build a shelter.
 
-For this you have to ALWAYS think in three steps: 1) Analyse the situation and and evaluate which Goal to focus on 2) Analyse the context to find out what is needed to achieve the goal and 3) Critically evaluate your inventory and find out if you have to correct materials or if you have to gather them first
+For this you have to ALWAYS think in three steps: 1) Analyse the situation and and evaluate which Goal to focus on 2) Analyse the context to find out what is needed to achieve the goal and 3) Critically evaluate your inventory and the available campfires on the map and find out if you have to requiered components or if you have to get them first
 
 Here is the context of the sitation and the game:
 
@@ -91,6 +91,7 @@ For a shelter you need the following two ressources in this amount or more: Very
 When you craft a campfire both Wood and Stone immediatley decrease to NONE and you need to collect ressources again before you can craft.
 
 Standing next to a campfire will regain your warmth stat regardless if you crafted it before or not, you simple have to stand next to it.
+YOU DON'T NEED TO CRAFT A CAMPFIRE WHEN THERE IS ALREADY ONE ON THE MAP YOU CAN STAND NEXT TO IT RIGHT AWAY.
 
 HERE ARE YOU CURRENT STATUS VALUES - CONSIDER BEFORE YOU TAKE ACTION:
 Food: ${qual(stats.food)}
@@ -138,100 +139,6 @@ Then append your answer as a VALID JSON ONLY to solve the query.
     return promptText;
 }
 
-export function getTacticalPrompt(agentName, state, strategicGoal) {
-    const agent = state.agent;
-    const stats = agent.stats || {};
-    const inventory = agent.inventory || {};
-    const failureMemory = agent.lastFailure ? `\nLAST PLAN FAILED AT: ${agent.lastFailure.step} because of the environment. AVOID DOING THE SAME THING.` : "";
-
-
-    return `
-YOU ARE THE TACTICAL MIND OF ${agentName}.
-Your job is to break down a STRATEGIC GOAL into a list of executable steps for the Behavior Tree.
-
-STRATEGIC GOAL: ${strategicGoal.goal} (${strategicGoal.priority})
-REASONING: ${strategicGoal.reasoning}
-
----
-CURRENT STATE:
-- Stats: Food: ${stats.food}, Warmth: ${stats.warmth}, Health: ${stats.health}
-- Inventory: ${JSON.stringify(inventory)}
-- Last Action Failure: ${agent.lastFailure ? agent.lastFailure.step : "None"}${failureMemory}
-
-PERCEPTION (Goal Requirements):
-${JSON.stringify(state.perception?.goalRequirements || "N/A", null, 2)}
-
-PERCEPTION (Nearby Resources):
-${JSON.stringify(state.resources || [], null, 2)}
-
-
-INSTRUCTIONS:
-1. Break the goal into 1-5 specific steps.
-2. Steps must use keywords: MOVE_TO [targetId], HARVEST [targetId], BUILD [recipeId], EAT [itemType].
-3. For MOVE_TO/HARVEST, use the exact ID from Nearby Resources if available (e.g., "tree_01").
-4. For STRATEGIC GOAL: CONSUME_BERRIES you can EAT the item from your inventory right away and don't have to harvest first.
-5. For STRATEGIC GOAL: BUILD_CAMPFIRE or BUILD_SHELTER you can directly BUILD with the items from your inventory and don't have to gather first.
-6. If no specific ID is visible for a required resource, use generic MoveTo: "MOVE_TO tree" or "MOVE_TO rock".
-7. ALWAYS ensure you have the materials before a BUILD step.
-8. If the Goal is GATHER_X, ensure the plan ends with at least one HARVEST step.
-
-Respond in VALID JSON ONLY:
-{
-  "thought": "Brief tactical reasoning",
-  "plan": [
-    "MOVE_TO tree_01",
-    "HARVEST tree_01",
-    "MOVE_TO rock_02"
-  ]
-}
-`;
-}
-
-export function getDecidePrompt(agentName, state) {
-    const agent = state.agent;
-    const stats = {
-        food: parseFloat(agent.stats?.food) || 100,
-        warmth: parseFloat(agent.stats?.warmth) || 100,
-        health: parseFloat(agent.stats?.health) || 100,
-        energy: parseFloat(agent.stats?.energy) || 100
-    };
-    const inventory = agent.inventory || {};
-    const resources = state.resources || [];
-    const buildings = state.buildings || [];
-    const others = state.others || [];
-    const position = agent.position || [0, 0, 0];
-
-    const nearbyTrees = resources.filter(r => r.type === 'tree').slice(0, 3);
-    const nearbyRocks = resources.filter(r => r.type === 'rock').slice(0, 3);
-    const nearbyBerries = resources.filter(r => r.type === 'berry').slice(0, 3);
-
-    return `
-You are ${agentName}, a survivor on a stranded island.
 
 
 
-YOUR CURRENT STATE:
-- Position: [${position}]
-- Stats: Food=${stats.food}/100, Warmth=${stats.warmth}/100, Health=${stats.health}/100, Energy=${stats.energy}/100
-- Inventory: ${JSON.stringify(inventory)}
-- Current State: ${agent.state || 'IDLE'}
-
-NEARBY RESOURCES:
-- Trees (wood): ${nearbyTrees.length > 0 ? nearbyTrees.map(t => `${t.id}(${t.remaining} left, dist:${t.dist})`).join(', ') : 'none visible'}
-- Rocks (stone): ${nearbyRocks.length > 0 ? nearbyRocks.map(r => `${r.id}(${r.remaining} left, dist:${r.dist})`).join(', ') : 'none visible'}
-- Berry bushes: ${nearbyBerries.length > 0 ? nearbyBerries.map(b => `${b.id}(${b.remaining} left, dist:${b.dist})`).join(', ') : 'none visible'}
-
-BUILDINGS: ${buildings.length > 0 ? buildings.map(b => `${b.type}(dist:${b.distance})`).join(', ') : 'none built yet'}
-
-OTHER SURVIVORS: ${others.length > 0 ? others.map(o => `${o.name}(dist:${o.distance})`).join(', ') : 'alone'}
-
-INSTRUCTIONS:
-1. Response MUST be valid JSON only.
-2. You MUST be within 2.5 units to HARVEST a resource.
-3. Use your knowledge to prioritize health and survival.
-4. If resources are needed for a building mentioned in world rules, gather them.
-
-What is your next action? Respond with JSON only:
-{"action": "ACTION_NAME", "targetId": "id" OR "target": [x,0,z], "recipeId": "RECIPE", "itemType": "item", "thought": "brief reasoning"}
-`;
-}

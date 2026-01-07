@@ -11,7 +11,8 @@ import {
     WaitNode,
     IsNearTarget,
     HasItem,
-    NodeStatus
+    NodeStatus,
+    InternalWaitNode
 } from './BehaviorTree.js';
 
 // ============================================================================
@@ -48,8 +49,20 @@ export function buildTreeFromPlan(plan) {
     }
 
     console.log(`[BT Parser] Built tree with ${validSteps.length} steps`);
+    console.log(`[BT Parser] Built tree with ${validSteps.length} steps`);
+    
+    // Inject Internal Wait (1s) between steps
+    const finalSteps = [];
+    validSteps.forEach((step, i) => {
+        finalSteps.push(step);
+        // Add wait after every step
+        if (i < validSteps.length) { 
+             finalSteps.push(new InternalWaitNode(1000));
+        }
+    });
+
     // Create a sequence of all steps
-    return new Sequence('TacticalPlan', validSteps);
+    return new Sequence('TacticalPlan', finalSteps);
 }
 
 
@@ -133,14 +146,14 @@ function parseStep(stepDesc, index) {
  * Looks for patterns like "tree_7", "rock_3", etc.
  */
 function extractTargetId(stepDesc) {
-    // Match patterns like: tree_7, rock_3, berry_2, bush_01
-    const match = stepDesc.match(/(tree|rock|berry|bush)_?\d+/i);
+    // Match patterns like: tree_7, rock_3, berry_2, bush_01, campfire_1
+    const match = stepDesc.match(/(tree|rock|berry|bush|campfire)_?\d+/i);
     if (match) {
         return match[0];
     }
 
-    // Match patterns like: tree 7, rock 3
-    const spacedMatch = stepDesc.match(/(tree|rock|berry|bush)\s+(\d+)/i);
+    // Match patterns like: tree 7, rock 3, campfire 1
+    const spacedMatch = stepDesc.match(/(tree|rock|berry|bush|campfire)\s+(\d+)/i);
     if (spacedMatch) {
         const type = spacedMatch[1].toLowerCase();
         const num = spacedMatch[2];
@@ -275,7 +288,9 @@ export function createBTContext(options) {
         createBuilding,
         consumeItem,
         findNearestResource,
-        visualDirector
+
+        visualDirector,
+        buildings = [] // New: Pass buildings list
     } = options;
 
     return {
@@ -289,6 +304,12 @@ export function createBTContext(options) {
             const resource = findResourceById(targetId);
             if (resource) {
                 return { position: resource.group.position, entity: resource };
+            }
+
+            // Try buildings (Campfires, Shelters)
+            const building = buildings.find(b => b.id === targetId);
+            if (building) {
+                return { position: building.group.position, entity: building };
             }
 
             return null;
